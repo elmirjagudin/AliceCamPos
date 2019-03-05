@@ -12,12 +12,44 @@ public class Cams : MonoBehaviour
         { "c", new double[] {-1.3935643329081679, -0.66734064840186891, 0.50418276390659389} },
     };
 
-    readonly Dictionary<string, Quaternion> Rotations = new Dictionary<string, Quaternion>
+    readonly Dictionary<string, float[]> Rotations = new Dictionary<string, float[]>
     {
-        { "m",  new Quaternion(-0.0037116f, -0.0021093f, 0.0014032f, -0.9999899f)},
-        { "l",  new Quaternion(-0.0157204f, -0.1185136f, -0.2037793f, -0.97169f)},
-        { "j",  new Quaternion(0.0005303f, -0.3360986f, -0.6818714f, -0.6496837f )},
-        { "c",  new Quaternion(-0.0010273f, 0.2162388f, 0.4211243f, -0.880848f)},
+        {
+            "m",
+            new float[]
+            {
+                0.99998716344830074f,    -0.0028221205726920592f,  -0.0042081556642446947f,
+                0.0027908050879879675f,   0.99996851009488064f,    -0.0074290124232838936f,
+                0.0042289887186166544f,   0.007417172918143017f,    0.99996354993585645f
+            }
+        },
+        {
+           "l",
+            new float[]
+            {
+                0.88885703247999037f, 0.39229448087793339f, -0.23672392376685986f,
+                -0.39974680480282654f, 0.91645371442213075f,  0.017750531592335202f,
+                0.2239099548050425f, 0.078851947310084741f, 0.97141479427925714f
+            }
+        },
+        {
+            "j",
+            new float[]
+            {
+                -0.15582171467731171f, 0.88635784361611636f,  -0.4359923924740095f,
+                -0.88564495419384448f, 0.070102263711310786f, 0.45904105234012887f,
+                0.43743869095680771f, 0.45766302634442529f, 0.77407489687449282f
+            }
+        },
+        {
+            "c",
+            new float[]
+            {
+                0.55179016647924173f, -0.74144914716618349f, 0.38181248584003902f,
+                0.74233767765774394f, 0.64530651700376207f, 0.18031714128773441f,
+               -0.38008207601321864f, 0.18393656862900487f, 0.90647942845630491f
+            }
+        },
     };
 
     public Text PositionName;
@@ -26,7 +58,6 @@ public class Cams : MonoBehaviour
     public BackgroundImage Background;
     Queue<GameObject> CamsPositions = new Queue<GameObject>();
 
-    
     void Start()
     {
         Background.ImagesDir = @"C:\Users\brab\Desktop\redFootstool";
@@ -42,7 +73,7 @@ public class Cams : MonoBehaviour
                 (float)item.Value[2]);
 
             cam.transform.position = unityPos;
-            cam.transform.rotation = Rotations[cam.name];
+            cam.transform.rotation = R2Quaternion(Rotations[cam.name]);
 
             CamsPositions.Enqueue(cam);
         }
@@ -59,9 +90,25 @@ public class Cams : MonoBehaviour
 
         if (Input.GetKeyDown("t"))
         {
-            print("toggle it");
             PhotogramMesh.SetActive(!PhotogramMesh.activeSelf);
         }
+    }
+
+    ///
+    /// convert rotation matrix (in AliceVision coordinate system)
+    /// to Quaternion (in Unity coordinates system)
+    ///
+    public static Quaternion R2Quaternion(float[] R)
+    {
+        var forward = new Vector3(R[2], R[5], R[8]);
+        var up = new Vector3(R[1], R[4], R[7]);
+
+        var quat =
+            Quaternion.LookRotation(forward, up);
+        quat.x = -quat.x;
+        quat.w = -quat.w;
+
+        return quat;
     }
 
     void GotoNextCam()
