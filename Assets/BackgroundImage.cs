@@ -4,7 +4,6 @@ using UnityEngine.UI;
 
 public class BackgroundImage : MonoBehaviour
 {
-    const string IMAGE_EXTENSION = ".jpg";
     const int WIDTH = 3264;
     const int HEIGHT = 2448;
 
@@ -57,7 +56,7 @@ public class BackgroundImage : MonoBehaviour
 
     public void ShowImage(string imageName)
     {
-        var imgPath = Path.Combine(ImagesDir, imageName + IMAGE_EXTENSION);
+        var imgPath = Path.Combine(ImagesDir, imageName);
 
         Debug.LogFormat("show '{0}", imgPath);
         tex.LoadImage(File.ReadAllBytes(imgPath));
