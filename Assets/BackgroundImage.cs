@@ -4,8 +4,8 @@ using UnityEngine.UI;
 
 public class BackgroundImage : MonoBehaviour
 {
-    const int WIDTH = 3264;
-    const int HEIGHT = 2448;
+    const int WIDTH = 3840;
+    const int HEIGHT = 2160;
 
     public string ImagesDir;
 
@@ -32,7 +32,6 @@ public class BackgroundImage : MonoBehaviour
 
             scaled_w = Screen.width;
             scaled_h = (int)(i_height * scale);
-
         }
         else
         {
@@ -51,7 +50,9 @@ public class BackgroundImage : MonoBehaviour
         image = gameObject.GetComponent<RawImage>();
         image.texture = tex;
 
-        SetRawImageSize();
+        image.rectTransform.sizeDelta = new Vector2(WIDTH, HEIGHT);
+
+        //SetRawImageSize();
     }
 
     public void ShowImage(string imageName)

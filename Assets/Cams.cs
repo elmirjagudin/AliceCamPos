@@ -1,13 +1,15 @@
-﻿using System.Collections.Generic;
+using System.Linq;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class Cams : MonoBehaviour
 {
-    const string IMAGES_DIR = @"C:\Users\brab\Desktop\redFootstool";
-    const string CAMERAS_SFM = @"C:\Users\brab\Desktop\redFootstool\MeshroomCache\StructureFromMotion\8e549b18dbb504e032c82ef80fa2bcc948d326e8\cameras.sfm";
+    const string IMAGES_DIR = "/home/boris/fsplit";
+    const string CAMERAS_SFM = "/home/boris/fsplit/frames/MeshroomCache/StructureFromMotion/4bd22665fda64a8203518022cef32e0deced2f43/cameras.sfm";
 
     public Text PositionName;
+    public Camera RenderCamera;
     public GameObject PhotogramMesh;
     public GameObject CamPrefab;
     public BackgroundImage Background;
@@ -16,6 +18,9 @@ public class Cams : MonoBehaviour
     void Start()
     {
         Background.ImagesDir = IMAGES_DIR;
+
+        var rot180z = Quaternion.Euler(0, 0, 180);
+
 
         foreach (var pose in AliceSfm.Load(CAMERAS_SFM))
         {
@@ -28,11 +33,13 @@ public class Cams : MonoBehaviour
                     pose.Item2[2]);
 
             cam.transform.position = unityPos;
-            cam.transform.rotation = R2Quaternion(pose.Item3);
+            cam.transform.rotation = R2Quaternion(pose.Item3) * rot180z;
 
             CamsPositions.Enqueue(cam);
-
         }
+
+        /* order frames by thier name aka number */
+        CamsPositions = new Queue<GameObject>(CamsPositions.OrderBy(z => z.name));
 
         GotoNextCam();
     }
@@ -72,11 +79,11 @@ public class Cams : MonoBehaviour
         var NextCam = CamsPositions.Dequeue();
         CamsPositions.Enqueue(NextCam);
 
-        var mainCamTrans = Camera.main.transform;
+        var camTrans = RenderCamera.transform;
 
-        mainCamTrans.parent = NextCam.transform;
-        mainCamTrans.localPosition = Vector3.zero;
-        mainCamTrans.localRotation = Quaternion.identity;
+        camTrans.parent = NextCam.transform;
+        camTrans.localPosition = Vector3.zero;
+        camTrans.localRotation = Quaternion.identity;
         PositionName.text = NextCam.name;
         Background.ShowImage(NextCam.name);
     }
