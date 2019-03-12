@@ -1,23 +1,33 @@
+using System.IO;
 using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using Brab;
 
 public class Cams : MonoBehaviour
 {
-    const string IMAGES_DIR = "/home/boris/fsplit";
-    const string CAMERAS_SFM = "/home/boris/fsplit/frames/MeshroomCache/StructureFromMotion/4bd22665fda64a8203518022cef32e0deced2f43/cameras.sfm";
+    const string FILE_EXT = "jpg";
+    const string IMAGES_DIR = "/home/boris/droneMov/valkarra1";
+    const string CAMERAS_SFM = "/home/boris/droneMov/valkarra1/MeshroomCache/StructureFromMotion/23fe847b4dadb79e0622cbbcb51fb65380996e54/cameras.sfm";
 
     public Text PositionName;
     public Camera RenderCamera;
     public GameObject PhotogramMesh;
     public GameObject CamPrefab;
     public BackgroundImage Background;
-    Queue<GameObject> CamsPositions = new Queue<GameObject>();
+
+    uint FirstFrame;
+    uint CurrentFrame;
+    uint LastFrame;
+    Dictionary<uint, GameObject> CamsPositions = new Dictionary<uint, GameObject>();
+
+    bool MovieModeOn = false;
 
     void Start()
     {
         Background.ImagesDir = IMAGES_DIR;
+        Background.FileExt = FILE_EXT;
 
         var rot180z = Quaternion.Euler(0, 0, 180);
 
@@ -35,18 +45,30 @@ public class Cams : MonoBehaviour
             cam.transform.position = unityPos;
             cam.transform.rotation = R2Quaternion(pose.Item3) * rot180z;
 
-            CamsPositions.Enqueue(cam);
+            CamsPositions.Add(Parse.Uint(cam.name), cam);
         }
 
-        /* order frames by thier name aka number */
-        CamsPositions = new Queue<GameObject>(CamsPositions.OrderBy(z => z.name));
+        var frameNums = CamsPositions.Keys.OrderBy(x=>x);
+        FirstFrame = frameNums.First();
+        CurrentFrame = FirstFrame - 1;
+        LastFrame = frameNums.Last();
 
         GotoNextCam();
     }
 
     void Update()
     {
+        if (MovieModeOn)
+        {
+            GotoNextCam();
+        }
+
         if (Input.GetKeyDown("space"))
+        {
+            MovieModeOn = !MovieModeOn;
+        }
+
+        if (Input.GetKeyDown("n"))
         {
             GotoNextCam();
         }
@@ -74,17 +96,67 @@ public class Cams : MonoBehaviour
         return quat;
     }
 
+    void InterpolateCamPos(uint frameNum, out Vector3 position, out Quaternion rotation)
+    {
+        uint from;
+        for (from = frameNum;
+             !CamsPositions.ContainsKey(from);
+             from -= 1)
+        {
+        }
+
+        uint to;
+        for (to = frameNum;
+             !CamsPositions.ContainsKey(to);
+             to += 1)
+        {
+        }
+
+        var len = (float)to - from;
+        var cur = (float)frameNum - from;
+        var t = cur/len;
+
+        var fromTrans = CamsPositions[from].transform;
+        var toTrans = CamsPositions[to].transform;
+
+        position = Vector3.Lerp(fromTrans.position, toTrans.position, t);
+        rotation = Quaternion.Slerp(fromTrans.rotation, toTrans.rotation, t);
+    }
+
     void GotoNextCam()
     {
-        var NextCam = CamsPositions.Dequeue();
-        CamsPositions.Enqueue(NextCam);
+        CurrentFrame += 1;
+
+        /* wrap around */
+        if (CurrentFrame > LastFrame)
+        {
+            CurrentFrame = FirstFrame;
+        }
+
+        var frameName = CurrentFrame.ToString("D4");
+        PositionName.text = frameName;
+        Background.ShowImage(frameName);
+
+        Vector3 position = Vector3.zero;
+        Quaternion rotation = Quaternion.identity;
+
+        if (CamsPositions.ContainsKey(CurrentFrame))
+        {
+            var t = CamsPositions[CurrentFrame].transform;
+            position = t.position;
+            rotation = t.rotation;
+
+            PositionName.color = Color.green;
+        }
+        else
+        {
+            InterpolateCamPos(CurrentFrame, out position, out rotation);
+            PositionName.color = Color.black;
+        }
 
         var camTrans = RenderCamera.transform;
 
-        camTrans.parent = NextCam.transform;
-        camTrans.localPosition = Vector3.zero;
-        camTrans.localRotation = Quaternion.identity;
-        PositionName.text = NextCam.name;
-        Background.ShowImage(NextCam.name);
+        camTrans.localPosition = position;
+        camTrans.localRotation = rotation;
     }
 }

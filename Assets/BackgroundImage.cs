@@ -8,6 +8,7 @@ public class BackgroundImage : MonoBehaviour
     const int HEIGHT = 2160;
 
     public string ImagesDir;
+    public string FileExt;
 
     RawImage image;
     Texture2D tex;
@@ -50,14 +51,14 @@ public class BackgroundImage : MonoBehaviour
         image = gameObject.GetComponent<RawImage>();
         image.texture = tex;
 
-        image.rectTransform.sizeDelta = new Vector2(WIDTH, HEIGHT);
+        image.rectTransform.sizeDelta = new Vector2(WIDTH / 2, HEIGHT / 2);
 
         //SetRawImageSize();
     }
 
     public void ShowImage(string imageName)
     {
-        var imgPath = Path.Combine(ImagesDir, imageName);
+        var imgPath = Path.Combine(ImagesDir, imageName + "." + FileExt);
 
         Debug.LogFormat("show '{0}", imgPath);
         tex.LoadImage(File.ReadAllBytes(imgPath));

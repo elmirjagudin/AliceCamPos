@@ -67,7 +67,13 @@ public class AliceSfm : MonoBehaviour
 
         foreach (var view in sfm.views)
         {
-            var viewName = Path.GetFileName(view.path);
+            var viewName = Path.GetFileNameWithoutExtension(view.path);
+            if (!PoseTransforms.ContainsKey(view.poseId))
+            {
+                Debug.LogFormat("no view pose for {0}/{1}, skipping", viewName, view.poseId);
+                continue;
+            }
+
             var t = PoseTransforms[view.poseId];
 
             yield return Tuple.Create(viewName, t.center, t.rotation);
