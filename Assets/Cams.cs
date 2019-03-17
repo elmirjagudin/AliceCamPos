@@ -8,8 +8,9 @@ using Brab;
 public class Cams : MonoBehaviour
 {
     const string FILE_EXT = "jpg";
-    const string IMAGES_DIR = "/home/boris/droneMov/valkarra1";
-    const string CAMERAS_SFM = "/home/boris/droneMov/valkarra1/MeshroomCache/StructureFromMotion/23fe847b4dadb79e0622cbbcb51fb65380996e54/cameras.sfm";
+    const string IMAGES_DIR = "/home/boris/droneMov/falafel_low";
+    const string CAMERAS_SFM = "/home/boris/droneMov/falafel_low/all_chunks/MeshroomCache/StructureFromMotion/9eccb155d18852d080d7a1ceaf34cf0ecbc783c0/cameras.sfm";
+    const string CAPTIONS_FILE = "/home/boris/droneMov/falafel_low/positions.srt";
 
     public Text PositionName;
     public Camera RenderCamera;
@@ -54,6 +55,8 @@ public class Cams : MonoBehaviour
         LastFrame = frameNums.Last();
 
         GotoNextCam();
+
+        GNSSTransform.CalcTransform(CAPTIONS_FILE, frameNums.ToArray(), CamsPositions);
     }
 
     void Update()
