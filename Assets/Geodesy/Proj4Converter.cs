@@ -10,7 +10,6 @@ public abstract class Proj4Converter
     {
         /* look for geoid grid tables in streaming assets directory */
         Proj4.SetSearchPath(Application.dataPath + "/StreamingAssets/");
-Log.Msg("{0}", Application.dataPath + "/StreamingAssets/");
     }
 
     public void toWGS84(GPSPosition pos, out double longitude, out double latitude, out double elevation)

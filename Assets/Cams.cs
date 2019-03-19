@@ -16,6 +16,7 @@ public class Cams : MonoBehaviour
     public Camera RenderCamera;
     public GameObject PhotogramMesh;
     public GameObject CamPrefab;
+    public GNSSTransform GNSSTransform;
     public BackgroundImage Background;
 
     uint FirstFrame;

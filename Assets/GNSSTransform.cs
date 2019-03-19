@@ -9,86 +9,136 @@ using UnityEngine;
 using Hagring;
 using Hagring.DJI;
 
-public class Transformer
+class Scaler
 {
-    Matrix<double> T;
+    const float MIN_GNSS_MAGNITUDE = 25.0f;
+
     Vector3 CamsOrigin;
     GPSPosition GNSSOrigin;
-    int NumPositions;
-    int i; // current position, TODO rename to e.g. CurrentPos
 
-    Matrix<double> A;
-    Matrix<double> b;
+    double ToFromScale = 0f;
+    int NumPositions = 0;
 
-    public Transformer(int NumPositions, Vector3 CamsOrigin, GPSPosition GNSSOrigin)
+
+    public Scaler(Vector3 CamsOrigin, GPSPosition GNSSOrigin)
     {
-        this.NumPositions = NumPositions;
         this.CamsOrigin = CamsOrigin;
         this.GNSSOrigin = GNSSOrigin;
-
-        /*
-         * each position defined 3 rows in the matrix
-         * and matrix have 9 columns
-         */
-        A = Matrix<double>.Build.Dense(NumPositions * 3, 9);
-        b = Matrix<double>.Build.Dense(NumPositions * 3, 1);
     }
 
-    public Vector3 ToCam(GPSPosition GNSSPos)
+    public void AddPosPair(GPSPosition GNSSPos, Vector3 CamPos, out Vector3 from, out Vector3 to)
     {
-        var v = GNSSOrigin.GetVector(GNSSPos);
+        from = GNSSOrigin.GetVector(GNSSPos);
+        to = CamPos - CamsOrigin;
 
-        var s = Matrix<double>.Build.DenseOfArray(new double [,]
+        var from_mag = from.magnitude;
+        var to_mag = to.magnitude;
+        if (from_mag < MIN_GNSS_MAGNITUDE)
         {
-            { v.x },
-            { v.y },
-            { v.z },
-        });
+            /* filter out GNSS position close to origin */
+            return;
+        }
 
-        var d = T * s;
-        return (new Vector3((float)d[0,0], (float)d[1,0], (float)d[2,0])) + CamsOrigin;
+        ToFromScale += (double)to_mag/(double)from_mag;
+        NumPositions += 1;
+    }
+
+    public double Calculate()
+    {
+        return ToFromScale / (double) NumPositions;
+    }
+}
+
+class Rotator
+{
+    Vector3 CamsOrigin;
+    GPSPosition GNSSOrigin;
+    float Scale;
+    Matrix<double> B;
+
+    public Rotator(Vector3 CamsOrigin, GPSPosition GNSSOrigin, float Scale)
+    {
+        this.CamsOrigin = CamsOrigin;
+        this.GNSSOrigin = GNSSOrigin;
+        this.Scale = Scale;
+
+        B = Matrix<double>.Build.Dense(3, 3);
     }
 
     public void AddPosPair(GPSPosition GNSSPos, Vector3 CamPos)
     {
-        var from = GNSSOrigin.GetVector(GNSSPos);
-
-        A[i*3, 0] = from.x;
-        A[i*3, 1] = from.y;
-        A[i*3, 2] = from.z;
-
-        A[i*3+1, 3] = from.x;
-        A[i*3+1, 4] = from.y;
-        A[i*3+1, 5] = from.z;
-
-        A[i*3+2, 6] = from.x;
-        A[i*3+2, 7] = from.y;
-        A[i*3+2, 8] = from.z;
-
+        var from = GNSSOrigin.GetVector(GNSSPos) * Scale;
         var to = CamPos - CamsOrigin;
-        b[i*3, 0] = to.x;
-        b[i*3 + 1, 0] = to.y;
-        b[i*3 + 2, 0] = to.z;
 
-        i += 1;
+        var v = Matrix<double>.Build.Dense(3, 1,
+            new double[] {to.x, to.y, to.z}
+        );
+
+        var w = Matrix<double>.Build.Dense(1, 3,
+            new double[] {from.x, from.y, from.z}
+        );
+
+        B = B + (v * w);
     }
 
-    public void Solve()
+    static Quaternion R2Quaternion(Matrix<double> R)
     {
-        var x = A.Solve(b);
+        var forward = new Vector3((float)R[0,2], (float)R[1,2], (float)R[2,2]);
+        var up = new Vector3((float)R[0,1], (float)R[1,1], (float)R[2,1]);
 
-        T = Matrix<double>.Build.DenseOfArray(new double [,]
-        {
-            { x[0,0], x[1,0], x[2,0] },
-            { x[3,0], x[4,0], x[5,0] },
-            { x[6,0], x[7,0], x[8,0] },
-        });
+        var quat = Quaternion.LookRotation(forward, up);
+
+        return quat;
+    }
+
+    public Quaternion Calculate()
+    {
+        var svd = B.Svd();
+        var U = svd.U;
+        var VT = svd.VT;
+
+        var M = Matrix<double>.Build.Diagonal(3, 3,
+            new double[] {1.0, 1.0, U.Determinant() * VT.Determinant()});
+
+        var R = U * M * VT;
+
+        return R2Quaternion(R);
     }
 }
 
-public class GNSSTransform
+class Transformer
 {
-    public static void CalcTransform(string CaptionsFile,
+    Vector3 CamsOrigin;
+    GPSPosition GNSSOrigin;
+    float Scale;
+    Quaternion Rotation;
+
+    public Transformer(Vector3 CamsOrigin, GPSPosition GNSSOrigin, float Scale, Quaternion Rotation)
+    {
+        this.CamsOrigin = CamsOrigin;
+        this.GNSSOrigin = GNSSOrigin;
+        this.Scale = Scale;
+        this.Rotation = Rotation;
+    }
+
+    public Vector3 ToSfm(GPSPosition GNSSPos)
+    {
+        var from = GNSSOrigin.GetVector(GNSSPos);
+
+        var to = (Rotation * (from * Scale)) + CamsOrigin;
+
+        return to;
+    }
+}
+
+public class GNSSTransform : MonoBehaviour
+{
+    public GameObject GNSSParent;
+    public GameObject SFMParent;
+    public GameObject GNSSPrefab;
+    public GameObject SFMPrefab;
+
+    public void CalcTransform(string CaptionsFile,
                                      uint[] FrameNums,
                                      Dictionary<uint, GameObject> CamsPositions)
     {
@@ -99,76 +149,108 @@ public class GNSSTransform
         GetOrigins(FrameNums, CamsPositions, Positions, out CamsOrigin, out GNSSOrigin);
 
         var NumPositions = FrameNums.Length / 2;
-        if ((FrameNums.Length % 2) != 0)
-        {
-            NumPositions += 1;
-        }
-
-        /*
-         * each position defined 3 rows in the matrix
-         * and matrix have 9 columns
-         */
-
-        int ExtraPos = 1;
-        var A = Matrix<double>.Build.Dense((NumPositions + ExtraPos) * 3, 9);
-        var b = Matrix<double>.Build.Dense((NumPositions + ExtraPos) * 3, 1);
-
-        Transformer transformer = new Transformer(NumPositions + ExtraPos, CamsOrigin, GNSSOrigin);
-
+        Scaler scaler = new Scaler(CamsOrigin, GNSSOrigin);
 
         for (int i = 0; i < NumPositions; i += 1)
         {
-            var frame = FrameNums[i*2];
-            var GNSSPos = GNSSOrigin.GetVector(Positions[GNSSTimeStamp(frame)]);
+            var frame = FrameNums[i*2+1];
 
-            transformer.AddPosPair(Positions[GNSSTimeStamp(frame)],
-                                   CamsPositions[frame].transform.position);
+            var p = Positions[GNSSTimeStamp(frame)];
+            var GNSSPos = GNSSOrigin.GetVector(p);
+
+            Vector3 x, y;
+            scaler.AddPosPair(Positions[GNSSTimeStamp(frame)],
+                              CamsPositions[frame].transform.position,
+                              out x, out y);
+
+
+            string name = frame.ToString() + " : " + p.ToString();
+            GameObject pos = Instantiate(GNSSPrefab, GNSSParent.transform);
+            pos.transform.position = x;
+            pos.name = name;
+
+            pos = Instantiate(SFMPrefab, SFMParent.transform);
+            pos.transform.position = y;
+            pos.name = name;
         }
 
-        /* hack to add 'height' dimension to equations system */
-        transformer.AddPosPair(
-            new GPSPosition(
-                "sweref_99_13_30",
-                6176470.36054859, 132025.788479135, 132.890071478672 - 30),
-                new Vector3(-1.26f, -0.573f, 2.695f));
+        var scale = scaler.Calculate();
 
-        transformer.Solve();
+        Rotator rotator = new Rotator(CamsOrigin, GNSSOrigin, (float)scale);
+        for (int i = 0; i < NumPositions; i += 1)
+        {
+            var frame = FrameNums[i*2+1];
+            var p = Positions[GNSSTimeStamp(frame)];
+            var GNSSPos = GNSSOrigin.GetVector(p);
 
-        Test(transformer, Positions.Values);
+            rotator.AddPosPair(Positions[GNSSTimeStamp(frame)],
+                               CamsPositions[frame].transform.position);
+        }
+        var rotation = rotator.Calculate();
+
+        GNSSParent.transform.localScale = Vector3.one * (float)scale;
+        GNSSParent.transform.rotation = rotation;
+
+        var transformer = new Transformer(CamsOrigin, GNSSOrigin, (float)scale, rotation);
+
+        Test(transformer, Positions.Values, rotation);
     }
 
-    static void Test(Transformer transformer, IEnumerable<GPSPosition> Positions)
+    void AddPosition(string name, double Longitude, double Latitude, double Altitude,
+                     Transformer transformer, Quaternion rotation)
     {
-        var cyl = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-        cyl.name = "downer";
-        cyl.transform.localScale = new Vector3(0.1f, 0.05f, 0.1f);
-        cyl.transform.position = new Vector3(-1.26f, -0.573f, 2.695f);
+        var toSweref = GeodesyProjections.fromWGS84Converter("sweref_99_13_30");
+        AddPosition(name, toSweref(Longitude, Latitude, Altitude), transformer, rotation, PrimitiveType.Cylinder);
+    }
+
+    void AddPosition(string name, GPSPosition pos, Transformer transformer, Quaternion rotation,
+                    PrimitiveType objType = PrimitiveType.Sphere)
+    {
+        var c = GameObject.CreatePrimitive(objType);
+        c.transform.rotation = rotation;
+        c.transform.position = transformer.ToSfm(pos);
+        c.transform.localScale = Vector3.one * 0.05f;
+        c.name = name + " " + pos;
+    }
+
+    void Test(Transformer transformer, IEnumerable<GPSPosition> Positions, Quaternion rotation)
+    {
+
+        GameObject c;
 
         foreach (var p in Positions)
         {
-            GameObject sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            sphere.transform.localScale = new Vector3(0.1f, 0.1f, 0.1f);
-            sphere.transform.position = transformer.ToCam(p);
-            sphere.name = p.ToString();
-Log.Msg("{0} -> {1}", p, sphere.transform.position);
+            c = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            c.transform.position = transformer.ToSfm(p);
+            c.transform.localScale = Vector3.one * 0.05f;
+            c.name = p.ToString();
         }
 
+        AddPosition("S", 13.21285566, 55.71090721, 102.3, transformer, rotation);
+        AddPosition("O", 13.21270959, 55.71090706, 102.3, transformer, rotation);
+        AddPosition("P", 13.21271005, 55.71095111, 102.3, transformer, rotation);
+        AddPosition("R", 13.21278098, 55.71095192, 102.3, transformer, rotation);
+        AddPosition("Q", 13.21285350, 55.71095194, 102.3, transformer, rotation);
 
-        GameObject XMark = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-        XMark.transform.localScale = new Vector3(0.1f, 0.1f, 0.1f);
-        var Xp = new GPSPosition("sweref_99_13_30", 6176490.0535561-5, 132029.138267629, 133);
-        // A
-        //var Xp = new GPSPosition("sweref_99_13_30", 6176483.22, 131949.16, 102.38);
-        XMark.transform.position = transformer.ToCam(Xp);
-Log.Msg("{0} -> {1}", Xp, XMark.transform.position);
-        XMark.name = "A";
+        for (int i = 1; i < 11; i += 1)
+        {
+            AddPosition("P" + i,
+                new GPSPosition("sweref_99_13_30", 6176417.94631892+i*2.5, 131941.659494839, 102.3),
+                transformer, rotation);
+            AddPosition("R" + i,
+                new GPSPosition("sweref_99_13_30", 6176418.01803302+i*2.5, 131946.118340288, 102.3),
+                transformer, rotation);
+            AddPosition("Q" + i,
+                new GPSPosition("sweref_99_13_30", 6176418.00138237+i*2.5, 131950.676764551, 102.3),
+                transformer, rotation);
+        }
     }
 
-    static void GetOrigins(uint[] FrameNums,
-                           Dictionary<uint, GameObject> CamsPositions,
-                           Dictionary<uint, GPSPosition> GNSSPositions,
-                           out Vector3 CamsOrigin,
-                           out GPSPosition GNSSOrigin)
+    void GetOrigins(uint[] FrameNums,
+                    Dictionary<uint, GameObject> CamsPositions,
+                    Dictionary<uint, GPSPosition> GNSSPositions,
+                    out Vector3 CamsOrigin,
+                    out GPSPosition GNSSOrigin)
     {
         uint first = FrameNums[0];
         CamsOrigin = CamsPositions[first].transform.position;
@@ -178,7 +260,7 @@ Log.Msg("{0} -> {1}", Xp, XMark.transform.position);
     static uint GNSSTimeStamp(uint FrameNum)
     {
         var pts =  FrameNum * 1001;
-        var ts = (double)(pts) / 30000.0;
+        var ts = ((double)(pts) / 30000.0) - .5;
 
         return (uint)Math.Round(ts);
     }
