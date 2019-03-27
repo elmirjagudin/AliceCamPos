@@ -26,10 +26,10 @@ class Scaler
         this.GNSSOrigin = GNSSOrigin;
     }
 
-    public void AddPosPair(GPSPosition GNSSPos, Vector3 CamPos, out Vector3 from, out Vector3 to)
+    public void AddPosPair(GPSPosition GNSSPos, Vector3 CamPos)
     {
-        from = GNSSOrigin.GetVector(GNSSPos);
-        to = CamPos - CamsOrigin;
+        var from = GNSSOrigin.GetVector(GNSSPos);
+        var to = CamPos - CamsOrigin;
 
         var newPosPair = (gnss: from, sfm: to);
 
@@ -43,34 +43,48 @@ class Scaler
         PositionPairs.Add(newPosPair);
     }
 
+    void DumpMagnitudes()
+    {
+        string gnss = "";
+        string sfm = "";
+
+        int i = 0;
+        foreach (var mag in Magnitudes)
+        {
+            i += 1;
+
+            gnss += mag.gnss + "; ";
+            sfm += mag.sfm + "; ";
+        }
+
+        File.WriteAllText("/home/boris/mags.m",
+            string.Format("gnss = [{0}]\nsfm = [{1}]", gnss, sfm));
+
+    }
+
     public double Calculate()
     {
         var gnss = Vector<double>.Build.Dense(Magnitudes.Count);
         var sfm = Vector<double>.Build.Dense(Magnitudes.Count);
 
-        string gnss_str = "";
-        string sfm_str = "";
+        DumpMagnitudes();
 
+        /*
+         * perform least squares fitting between
+         * GNSS and SFM magnitudes
+         */
         int i = 0;
         foreach (var mag in Magnitudes)
         {
             gnss[i] = mag.gnss;
             sfm[i] = mag.sfm;
             i += 1;
-
-            gnss_str += mag.gnss + " ";
-            sfm_str += mag.sfm + " ";
         }
 
         var scale = (sfm*gnss) / (gnss*gnss);
 Log.Msg("scale {0}", scale);
 
-        File.WriteAllText("/home/boris/mags.m",
-            string.Format("gnss = [{0}]\nsfm = [{1}]", gnss_str, sfm_str));
         return scale;
-        //return ToFromScale / (double) NumPositions;
-        //return 0.047706; // chunk1
-        //return 0.051770; // chunk2
     }
 }
 
@@ -164,50 +178,30 @@ public class GNSSTransform : MonoBehaviour
 
     public void CalcTransform(string CaptionsFile,
                               uint[] FrameNums,
-                              Dictionary<uint, GameObject> CamsPositions)
+                              Dictionary<uint, GameObject> SFMPositions)
     {
-        var Positions = LoadGNSSCoords(CaptionsFile);
+
+        var GNSSPositions = LoadGNSSCoords(CaptionsFile);
         Vector3 CamsOrigin;
         GPSPosition GNSSOrigin;
 
-        GetOrigins(FrameNums, CamsPositions, Positions, out CamsOrigin, out GNSSOrigin);
+        GetOrigins(FrameNums, SFMPositions, GNSSPositions, out CamsOrigin, out GNSSOrigin);
 
         var NumPositions = FrameNums.Length / 2;
         Scaler scaler = new Scaler(CamsOrigin, GNSSOrigin);
 
-        for (int i = 0; i < NumPositions; i += 1)
+        foreach (var posPair in PositionPairs(FrameNums, SFMPositions, GNSSPositions))
         {
-            var frame = FrameNums[i*2+1];
-
-            var gnssPos = Positions[GNSSTimeStamp(frame)];
-
-            Vector3 x, y;
-            scaler.AddPosPair(gnssPos,
-                              CamsPositions[frame].transform.position,
-                              out x, out y);
-
-            string name = frame.ToString() + " : " + gnssPos.ToString();
-            GameObject pos = Instantiate(GNSSPrefab, GNSSParent.transform);
-            pos.transform.position = x;
-            pos.name = name;
-
-            pos = Instantiate(SFMPrefab, SFMParent.transform);
-            pos.transform.position = y;
-            pos.name = name;
+            scaler.AddPosPair(posPair.gnss, posPair.sfm);
         }
 
         var scale = scaler.Calculate();
-
         Rotator rotator = new Rotator(CamsOrigin, GNSSOrigin, (float)scale);
-        for (int i = 0; i < NumPositions; i += 1)
+        foreach (var posPair in PositionPairs(FrameNums, SFMPositions, GNSSPositions))
         {
-            var frame = FrameNums[i*2+1];
-            var p = Positions[GNSSTimeStamp(frame)];
-            var GNSSPos = GNSSOrigin.GetVector(p);
-
-            rotator.AddPosPair(Positions[GNSSTimeStamp(frame)],
-                               CamsPositions[frame].transform.position);
+            rotator.AddPosPair(posPair.gnss, posPair.sfm);
         }
+
         var rotation = rotator.Calculate();
 
         GNSSParent.transform.localScale = Vector3.one * (float)scale;
@@ -215,7 +209,39 @@ public class GNSSTransform : MonoBehaviour
 
         var transformer = new Transformer(CamsOrigin, GNSSOrigin, (float)scale, rotation);
 
-        Test(transformer, Positions.Values, rotation);
+        Test(transformer, GNSSPositions.Values, rotation);
+    }
+
+    IEnumerable<(Vector3 sfm, GPSPosition gnss)> PositionPairs(
+        uint[] FrameNums,
+        Dictionary<uint, GameObject> SFMPositions,
+        Dictionary<uint, GPSPosition> GNSSPositions)
+    {
+        /*
+         * figure out a good start frame,
+         * so that we get close in time to recorded GNSS coordinates
+         *
+         * GNSS coordinates are recorded at N+0.5 seconds in the
+         * (note: subtittles timestamp seems to be 0.5 seconds wrong)
+         *
+         * if first frames timestamp is close N+0.5, use it
+         * otherwise, pick next frame (as we have ~2FPS here)
+         */
+        var firstFrame = FrameNums[0];
+        var pts = firstFrame * 1001;
+        var ts = ((double)pts) / 30000.0;
+        var frac = ts % 1.0;
+        bool closeToHalf = frac > 0.25 && frac <= 0.75;
+
+        int j = closeToHalf ? 0 : 1;
+        for (;j < FrameNums.Length; j += 2)
+        {
+            var frame = FrameNums[j];
+            var sfm = SFMPositions[frame].transform.position;
+            var gnss = GNSSPositions[GNSSTimeStamp(frame)];
+
+            yield return (sfm: sfm, gnss: gnss);
+        }
     }
 
     void AddPosition(string name, double Longitude, double Latitude, double Altitude,
@@ -231,7 +257,7 @@ public class GNSSTransform : MonoBehaviour
         var c = GameObject.CreatePrimitive(objType);
         c.transform.rotation = rotation;
         c.transform.position = transformer.ToSfm(pos);
-        c.transform.localScale = new Vector3(0.02f, 0.05f, 0.02f);
+        c.transform.localScale = new Vector3(0.035f, 0.05f, 0.035f);
         c.name = name + " " + pos;
     }
 
@@ -254,18 +280,18 @@ public class GNSSTransform : MonoBehaviour
         AddPosition("R", 13.21278098, 55.71095192, 102.3, transformer, rotation);
         AddPosition("Q", 13.21285350, 55.71095194, 102.3, transformer, rotation);
 
-        for (int i = 1; i < 11; i += 1)
-        {
-            AddPosition("P" + i,
-                new GPSPosition("sweref_99_13_30", 6176417.94631892+i*2.5, 131941.659494839, 102.3),
-                transformer, rotation);
-            AddPosition("R" + i,
-                new GPSPosition("sweref_99_13_30", 6176418.01803302+i*2.5, 131946.118340288, 102.3),
-                transformer, rotation);
-            AddPosition("Q" + i,
-                new GPSPosition("sweref_99_13_30", 6176418.00138237+i*2.5, 131950.676764551, 102.3),
-                transformer, rotation);
-        }
+        // for (int i = 1; i < 11; i += 1)
+        // {
+        //     AddPosition("P" + i,
+        //         new GPSPosition("sweref_99_13_30", 6176417.94631892+i*2.5, 131941.659494839, 102.3),
+        //         transformer, rotation);
+        //     AddPosition("R" + i,
+        //         new GPSPosition("sweref_99_13_30", 6176418.01803302+i*2.5, 131946.118340288, 102.3),
+        //         transformer, rotation);
+        //     AddPosition("Q" + i,
+        //         new GPSPosition("sweref_99_13_30", 6176418.00138237+i*2.5, 131950.676764551, 102.3),
+        //         transformer, rotation);
+        // }
     }
 
     void GetOrigins(uint[] FrameNums,
@@ -283,7 +309,7 @@ public class GNSSTransform : MonoBehaviour
 
     static uint GNSSTimeStamp(uint FrameNum)
     {
-        var pts =  FrameNum * 1001;
+        var pts = FrameNum * 1001;
         var ts = ((double)(pts) / 30000.0) - .5;
 
         return (uint)Math.Round(ts);
