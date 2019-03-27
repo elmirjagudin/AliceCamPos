@@ -9,7 +9,8 @@ public class Cams : MonoBehaviour
 {
     const string FILE_EXT = "jpg";
     const string IMAGES_DIR = "/home/boris/droneMov/falafel_low";
-    const string CAMERAS_SFM = "/home/boris/droneMov/falafel_low/all_chunks/MeshroomCache/StructureFromMotion/9eccb155d18852d080d7a1ceaf34cf0ecbc783c0/cameras.sfm";
+    //const string CAMERAS_SFM = "/home/boris/droneMov/falafel_low/chunk1/MeshroomCache/StructureFromMotion/f52b1f0c572f1b5c8f35980481c004f9685dd455/cameras.sfm";
+    const string CAMERAS_SFM = "/home/boris/droneMov/falafel_low/chunk2/MeshroomCache/StructureFromMotion/085f865e6a21635bbeb7d511a3026135c243b156/cameras.sfm";
     const string CAPTIONS_FILE = "/home/boris/droneMov/falafel_low/positions.srt";
 
     public Text PositionName;
@@ -32,7 +33,6 @@ public class Cams : MonoBehaviour
         Background.FileExt = FILE_EXT;
 
         var rot180z = Quaternion.Euler(0, 0, 180);
-
 
         foreach (var pose in AliceSfm.Load(CAMERAS_SFM))
         {

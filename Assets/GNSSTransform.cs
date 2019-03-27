@@ -11,14 +11,14 @@ using Hagring.DJI;
 
 class Scaler
 {
-    const float MIN_GNSS_MAGNITUDE = 25.0f;
-
     Vector3 CamsOrigin;
     GPSPosition GNSSOrigin;
 
-    double ToFromScale = 0f;
-    int NumPositions = 0;
+    List<(Vector3 gnss, Vector3 sfm)> PositionPairs =
+        new List<(Vector3 gnss, Vector3 sfm)>();
 
+    List<(float gnss, float sfm)> Magnitudes =
+        new List<(float gnss, float sfm)>();
 
     public Scaler(Vector3 CamsOrigin, GPSPosition GNSSOrigin)
     {
@@ -31,21 +31,46 @@ class Scaler
         from = GNSSOrigin.GetVector(GNSSPos);
         to = CamPos - CamsOrigin;
 
-        var from_mag = from.magnitude;
-        var to_mag = to.magnitude;
-        if (from_mag < MIN_GNSS_MAGNITUDE)
-        {
-            /* filter out GNSS position close to origin */
-            return;
-        }
+        var newPosPair = (gnss: from, sfm: to);
 
-        ToFromScale += (double)to_mag/(double)from_mag;
-        NumPositions += 1;
+        foreach (var posPair in PositionPairs)
+        {
+            var gnss = posPair.gnss - newPosPair.gnss;
+            var sfm = posPair.sfm - newPosPair.sfm;
+            Magnitudes.Add((gnss: gnss.magnitude, sfm: sfm.magnitude));
+
+        }
+        PositionPairs.Add(newPosPair);
     }
 
     public double Calculate()
     {
-        return ToFromScale / (double) NumPositions;
+        var gnss = Vector<double>.Build.Dense(Magnitudes.Count);
+        var sfm = Vector<double>.Build.Dense(Magnitudes.Count);
+
+        string gnss_str = "";
+        string sfm_str = "";
+
+        int i = 0;
+        foreach (var mag in Magnitudes)
+        {
+            gnss[i] = mag.gnss;
+            sfm[i] = mag.sfm;
+            i += 1;
+
+            gnss_str += mag.gnss + " ";
+            sfm_str += mag.sfm + " ";
+        }
+
+        var scale = (sfm*gnss) / (gnss*gnss);
+Log.Msg("scale {0}", scale);
+
+        File.WriteAllText("/home/boris/mags.m",
+            string.Format("gnss = [{0}]\nsfm = [{1}]", gnss_str, sfm_str));
+        return scale;
+        //return ToFromScale / (double) NumPositions;
+        //return 0.047706; // chunk1
+        //return 0.051770; // chunk2
     }
 }
 
@@ -124,7 +149,6 @@ class Transformer
     public Vector3 ToSfm(GPSPosition GNSSPos)
     {
         var from = GNSSOrigin.GetVector(GNSSPos);
-
         var to = (Rotation * (from * Scale)) + CamsOrigin;
 
         return to;
@@ -139,8 +163,8 @@ public class GNSSTransform : MonoBehaviour
     public GameObject SFMPrefab;
 
     public void CalcTransform(string CaptionsFile,
-                                     uint[] FrameNums,
-                                     Dictionary<uint, GameObject> CamsPositions)
+                              uint[] FrameNums,
+                              Dictionary<uint, GameObject> CamsPositions)
     {
         var Positions = LoadGNSSCoords(CaptionsFile);
         Vector3 CamsOrigin;
@@ -155,16 +179,14 @@ public class GNSSTransform : MonoBehaviour
         {
             var frame = FrameNums[i*2+1];
 
-            var p = Positions[GNSSTimeStamp(frame)];
-            var GNSSPos = GNSSOrigin.GetVector(p);
+            var gnssPos = Positions[GNSSTimeStamp(frame)];
 
             Vector3 x, y;
-            scaler.AddPosPair(Positions[GNSSTimeStamp(frame)],
+            scaler.AddPosPair(gnssPos,
                               CamsPositions[frame].transform.position,
                               out x, out y);
 
-
-            string name = frame.ToString() + " : " + p.ToString();
+            string name = frame.ToString() + " : " + gnssPos.ToString();
             GameObject pos = Instantiate(GNSSPrefab, GNSSParent.transform);
             pos.transform.position = x;
             pos.name = name;
@@ -209,7 +231,7 @@ public class GNSSTransform : MonoBehaviour
         var c = GameObject.CreatePrimitive(objType);
         c.transform.rotation = rotation;
         c.transform.position = transformer.ToSfm(pos);
-        c.transform.localScale = Vector3.one * 0.05f;
+        c.transform.localScale = new Vector3(0.02f, 0.05f, 0.02f);
         c.name = name + " " + pos;
     }
 
@@ -252,9 +274,11 @@ public class GNSSTransform : MonoBehaviour
                     out Vector3 CamsOrigin,
                     out GPSPosition GNSSOrigin)
     {
-        uint first = FrameNums[0];
-        CamsOrigin = CamsPositions[first].transform.position;
-        GNSSOrigin = GNSSPositions[GNSSTimeStamp(first)];
+        uint originFrame = FrameNums[0];
+        //uint originFrame = FrameNums[FrameNums.Length / 2];
+        //uint originFrame = FrameNums[FrameNums.Length - 1];
+        CamsOrigin = CamsPositions[originFrame].transform.position;
+        GNSSOrigin = GNSSPositions[GNSSTimeStamp(originFrame)];
     }
 
     static uint GNSSTimeStamp(uint FrameNum)
