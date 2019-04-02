@@ -9,8 +9,9 @@ public class Cams : MonoBehaviour
 {
     const string FILE_EXT = "jpg";
     const string IMAGES_DIR = "/home/boris/droneMov/falafel_low";
-    //const string CAMERAS_SFM = "/home/boris/droneMov/falafel_low/chunk1/MeshroomCache/StructureFromMotion/f52b1f0c572f1b5c8f35980481c004f9685dd455/cameras.sfm";
-    const string CAMERAS_SFM = "/home/boris/droneMov/falafel_low/chunk2/MeshroomCache/StructureFromMotion/085f865e6a21635bbeb7d511a3026135c243b156/cameras.sfm";
+    //const string CAMERAS_SFM = "/home/boris/droneMov/falafel_low/chunk0/MeshroomCache/StructureFromMotion/40f1b9a7b5de1da99078b9caabe2935e8503c7d9/cameras.sfm";
+    const string CAMERAS_SFM = "/home/boris/droneMov/falafel_low/chunk1/MeshroomCache/StructureFromMotion/f52b1f0c572f1b5c8f35980481c004f9685dd455/cameras.sfm";
+    //const string CAMERAS_SFM = "/home/boris/droneMov/falafel_low/chunk2/MeshroomCache/StructureFromMotion/085f865e6a21635bbeb7d511a3026135c243b156/cameras.sfm";
     const string CAPTIONS_FILE = "/home/boris/droneMov/falafel_low/positions.srt";
 
     public Text PositionName;

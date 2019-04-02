@@ -175,6 +175,7 @@ public class GNSSTransform : MonoBehaviour
     public GameObject SFMParent;
     public GameObject GNSSPrefab;
     public GameObject SFMPrefab;
+    public GameObject RedBall;
 
     public void CalcTransform(string CaptionsFile,
                               uint[] FrameNums,
@@ -261,6 +262,15 @@ public class GNSSTransform : MonoBehaviour
         c.name = name + " " + pos;
     }
 
+    void AddPositionRB(string name, GPSPosition pos, Transformer transformer, Quaternion rotation)
+    {
+        var c = Instantiate(RedBall);
+        c.transform.rotation = rotation;
+        c.transform.position = transformer.ToSfm(pos);
+        c.transform.localScale = Vector3.one * 0.05f;
+        c.name = name + " " + pos;
+    }
+
     void Test(Transformer transformer, IEnumerable<GPSPosition> Positions, Quaternion rotation)
     {
 
@@ -279,6 +289,47 @@ public class GNSSTransform : MonoBehaviour
         AddPosition("P", 13.21271005, 55.71095111, 102.3, transformer, rotation);
         AddPosition("R", 13.21278098, 55.71095192, 102.3, transformer, rotation);
         AddPosition("Q", 13.21285350, 55.71095194, 102.3, transformer, rotation);
+
+        AddPosition("Pnt1",  13.21404847, 55.71092960, 103.2 + .4, transformer, rotation);
+        AddPositionRB("APnt1",
+                 new GPSPosition("sweref_99_13_30", 6176415.2 + .25, 132025.7 - .26, 103.6),
+                 transformer, rotation);
+
+        //AddPosition("Pnt3",  13.21392685, 55.71085484, 103.2 + .4, transformer, rotation);
+        AddPositionRB("APnt3",
+                new GPSPosition("sweref_99_13_30", 6176406.9 + .25, 132018.1 - .26, 103.6),
+                transformer, rotation);
+
+        //AddPosition("Pnt5",  13.21380042, 55.71085481, 103.2 + .4, transformer, rotation);
+        AddPositionRB("APnt5",
+                new GPSPosition("sweref_99_13_30", 6176406.9 + .24, 132010.1 - .18, 103.6),
+                transformer, rotation);
+
+        //AddPosition("Pnt8",  13.21372798, 55.71085486, 103.1 + .4, transformer, rotation);
+        AddPositionRB("APnt8",
+                new GPSPosition("sweref_99_13_30", 6176407 + .24, 132005.6 - .18, 103.5),
+                transformer, rotation);
+
+        //AddPosition("Pnt11", 13.21386312, 55.71097488, 103.1 + .4, transformer, rotation);
+        AddPositionRB("APnt11",
+                new GPSPosition("sweref_99_13_30", 6176420.3 + .21, 132014.1 - .17, 103.5),
+                transformer, rotation);
+
+        //AddPosition("Pnt13", 13.21367242, 55.71092992, 102.9 + .4, transformer, rotation);
+        AddPositionRB("APnt13",
+                new GPSPosition("sweref_99_13_30", 6176415.3 + .21, 132002.1- .17, 103.3),
+                transformer, rotation);
+
+        AddPosition("Pnt14", 13.21351337, 55.71099739, 103.0 + .4, transformer, rotation);
+        AddPosition("Pnt16", 13.21324542, 55.71090776, 102.7 + .4, transformer, rotation);
+        AddPosition("Pnt18", 13.21324485, 55.71093010, 102.7 + .4, transformer, rotation);
+        AddPosition("Pnt20", 13.21313172, 55.71090771, 102.5 + .4, transformer, rotation);
+        AddPosition("Pnt22", 13.21305239, 55.71090753, 102.5 + .4, transformer, rotation);
+        AddPosition("Pnt24", 13.21297380, 55.71090752, 102.5 + .4, transformer, rotation);
+        AddPosition("Pnt26", 13.21312557, 55.71075311, 102.5 + .4, transformer, rotation);
+        AddPosition("Pnt28", 13.21316558, 55.71075306, 102.5 + .4, transformer, rotation);
+        AddPosition("Pnt30", 13.21320524, 55.71075316, 102.6 + .4, transformer, rotation);
+
 
         // for (int i = 1; i < 11; i += 1)
         // {
