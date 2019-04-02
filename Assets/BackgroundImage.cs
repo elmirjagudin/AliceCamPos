@@ -45,7 +45,7 @@ public class BackgroundImage : MonoBehaviour
         image.rectTransform.sizeDelta = new Vector2(scaled_w, scaled_h);
     }
 
-    void Start()
+    void Awake()
     {
         tex = new Texture2D(WIDTH, HEIGHT);
         image = gameObject.GetComponent<RawImage>();
@@ -59,9 +59,6 @@ public class BackgroundImage : MonoBehaviour
     public void ShowImage(string imageName)
     {
         var imgPath = Path.Combine(ImagesDir, imageName + "." + FileExt);
-
-        Debug.LogFormat("show '{0}", imgPath);
         tex.LoadImage(File.ReadAllBytes(imgPath));
-
     }
 }

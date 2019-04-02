@@ -16,19 +16,13 @@ public class Cams : MonoBehaviour
 
     public Text PositionName;
     public Camera RenderCamera;
-    public GameObject PhotogramMesh;
     public GameObject CamPrefab;
     public GNSSTransform GNSSTransform;
     public BackgroundImage Background;
 
-    uint FirstFrame;
-    uint CurrentFrame;
-    uint LastFrame;
     Dictionary<uint, GameObject> CamsPositions = new Dictionary<uint, GameObject>();
 
-    bool MovieModeOn = false;
-
-    void Start()
+    public void Init(out uint FirstFrame, out uint LastFrame)
     {
         Background.ImagesDir = IMAGES_DIR;
         Background.FileExt = FILE_EXT;
@@ -53,35 +47,9 @@ public class Cams : MonoBehaviour
 
         var frameNums = CamsPositions.Keys.OrderBy(x=>x);
         FirstFrame = frameNums.First();
-        CurrentFrame = FirstFrame - 1;
         LastFrame = frameNums.Last();
 
-        GotoNextCam();
-
         GNSSTransform.CalcTransform(CAPTIONS_FILE, frameNums.ToArray(), CamsPositions);
-    }
-
-    void Update()
-    {
-        if (MovieModeOn)
-        {
-            GotoNextCam();
-        }
-
-        if (Input.GetKeyDown("space"))
-        {
-            MovieModeOn = !MovieModeOn;
-        }
-
-        if (Input.GetKeyDown("n"))
-        {
-            GotoNextCam();
-        }
-
-        if (Input.GetKeyDown("t"))
-        {
-            PhotogramMesh.SetActive(!PhotogramMesh.activeSelf);
-        }
     }
 
     ///
@@ -128,26 +96,18 @@ public class Cams : MonoBehaviour
         rotation = Quaternion.Slerp(fromTrans.rotation, toTrans.rotation, t);
     }
 
-    void GotoNextCam()
+    public void GotoFrame(uint FrameNum)
     {
-        CurrentFrame += 1;
-
-        /* wrap around */
-        if (CurrentFrame > LastFrame)
-        {
-            CurrentFrame = FirstFrame;
-        }
-
-        var frameName = CurrentFrame.ToString("D4");
+        var frameName = FrameNum.ToString("D4");
         PositionName.text = frameName;
         Background.ShowImage(frameName);
 
         Vector3 position = Vector3.zero;
         Quaternion rotation = Quaternion.identity;
 
-        if (CamsPositions.ContainsKey(CurrentFrame))
+        if (CamsPositions.ContainsKey(FrameNum))
         {
-            var t = CamsPositions[CurrentFrame].transform;
+            var t = CamsPositions[FrameNum].transform;
             position = t.position;
             rotation = t.rotation;
 
@@ -155,7 +115,7 @@ public class Cams : MonoBehaviour
         }
         else
         {
-            InterpolateCamPos(CurrentFrame, out position, out rotation);
+            InterpolateCamPos(FrameNum, out position, out rotation);
             PositionName.color = Color.black;
         }
 
