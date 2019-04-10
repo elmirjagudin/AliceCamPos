@@ -1,0 +1,4 @@
+EXPORTS
+    recorder_init
+    recorder_encode_frame
+    recorder_close
