@@ -1,7 +1,8 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Threading;
+using System.Diagnostics;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Hagring
@@ -120,7 +121,7 @@ class ThreadRunner
         catch (Exception e)
         {
             /* log the unhandled exception */
-            Debug.LogException(e);
+            UnityEngine.Debug.LogException(e);
         }
     }
 }
@@ -193,6 +194,42 @@ public class Utils
                 dir.Delete();
             }
         }
+    }
+
+    public static Process Run(string bin, params string[] args)
+    {
+        var psi = new ProcessStartInfo();
+        psi.FileName = bin;
+        psi.UseShellExecute = false;
+        psi.RedirectStandardOutput = true;
+        psi.RedirectStandardError = true;
+
+        /* add process arguments */
+        var argsStr = "";
+        foreach (var arg in args)
+        {
+            argsStr += $" {arg}";
+        }
+        psi.Arguments = argsStr;
+
+        var proc = new Process();
+        proc.StartInfo = psi;
+        proc.Start();
+
+        return proc;
+    }
+
+    /*
+     * do 'rm -rf <DirPath>'
+     */
+    public static void RemoveDir(string DirPath)
+    {
+        if (!Directory.Exists(DirPath))
+        {
+            /* does not exist, don't try to remove or we'll get an exception */
+            return;
+        }
+        Directory.Delete(DirPath, true);
     }
 
     ///
@@ -301,66 +338,6 @@ public class Utils
     static public double toDegrees(double angle)
     {
         return angle * (180 / Math.PI);
-    }
-}
-
-///
-/// A wrapper around Unity's Log functions to make it a bit more
-/// convenient to log messages, warnings and errors.
-///
-/// Examples
-///
-/// Information level messages:
-///
-/// Log.Msg("simple message");
-/// Log.Msg("message with parameters {0} {1}, param1, param2);
-///
-/// Warning level message:
-///
-/// Log.Wrn("simple warning");
-/// Log.Wrn("warning with parameters {0} {1}, param1, param2);
-///
-/// Error level messages:
-///
-/// Log.Err("simple error");
-/// Log.Err("error with parameters {0} {1}, param1, param2);
-///
-/// You can also log objects with:
-///
-/// Log.Msg(someObject);
-///
-/// The above will to log someObject.toString() string.
-///
-public class Log
-{
-    public static void Msg(object msg)
-    {
-        Debug.Log(msg);
-    }
-
-    public static void Msg(string format, params object[] args)
-    {
-        Debug.LogFormat(format, args);
-    }
-
-    public static void Wrn(object msg)
-    {
-        Debug.LogWarning(msg);
-    }
-
-    public static void Wrn(string format, params object[] args)
-    {
-        Debug.LogWarningFormat(format, args);
-    }
-
-    public static void Err(object msg)
-    {
-        Debug.LogError(msg);
-    }
-
-    public static void Err(string format, params object[] args)
-    {
-        Debug.LogErrorFormat(format, args);
     }
 }
 }
