@@ -3,6 +3,10 @@ using UnityEngine.UI;
 
 public class ProgressBar : MonoBehaviour
 {
+    public delegate void Cancel();
+
+    Cancel CancelCB = null;
+
     Text _stepLabel = null;
     Text stepLabel
     {
@@ -28,9 +32,25 @@ public class ProgressBar : MonoBehaviour
         }
     }
 
-    public void SetProgress(string stepName = "", float done = 0)
+    public void CancelClicked()
     {
+        if (CancelCB == null)
+        {
+            /* no cancel callback registered */
+            return;
+        }
+
+        CancelCB();
+    }
+
+    public void Show(Cancel CancelCB)
+    {
+        this.CancelCB = CancelCB;
         gameObject.SetActive(true);
+    }
+
+    public void SetProgress(string stepName, float done)
+    {
         stepLabel.text = stepName;
         progressBar.fillAmount = done;
     }
@@ -38,5 +58,6 @@ public class ProgressBar : MonoBehaviour
     public void Hide()
     {
         gameObject.SetActive(false);
+        this.CancelCB = null;
     }
 }

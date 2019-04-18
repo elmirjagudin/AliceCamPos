@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Threading;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using Hagring;
@@ -21,32 +22,18 @@ class FFMPEGOutputParser
     SplitProgress ProgressCB;
     StreamReader Output;
     uint Duration;
-    uint LastFrame;
+    public uint LastFrame { get; private set; }
 
     Mode ParseMode;
 
-    public FFMPEGOutputParser(StreamReader Output, SplitProgress ProgressCB)
+    public FFMPEGOutputParser(SplitProgress ProgressCB)
     {
         this.ProgressCB = ProgressCB;
-        this.Output = Output;
-
         ParseMode = Mode.ParseDuration;
     }
 
-    public uint ParseOutput()
+    public void ParseLine(string line)
     {
-        while (ParseLine(Output.ReadLine())) { /* nop */ }
-
-        return LastFrame;
-    }
-
-    bool ParseLine(string line)
-    {
-        if (line == null)
-        {
-            return false;
-        }
-
         switch (ParseMode)
         {
             case Mode.ParseDuration:
@@ -56,8 +43,6 @@ class FFMPEGOutputParser
                 ParseFrame(line);
                 break;
         }
-
-        return true;
     }
 
     static uint Get(GroupCollection groups, string name)
@@ -115,43 +100,31 @@ public class PrepVideo
         return Path.Combine(dirName, DATA_DIR, fileName);
     }
 
-    public static void ExtractSubtitles(string ffmpegBinary, string VideoFile)
+    public static void ExtractSubtitles(string ffmpegBinary, string VideoFile,
+                                        AutoResetEvent AbortEvent)
     {
         var destDir = GetDestinationDir(VideoFile);
         var posFile = Path.Combine(destDir, POSITIONS_FILE);
 
-        var proc = Utils.Run(ffmpegBinary, "-y", "-i", VideoFile, posFile);
-
-        proc.WaitForExit();
-
-        var exitCode = proc.ExitCode;
-        if (exitCode != 0)
-        {
-            var err = string.Format("{0} failed, exit code {1}", ffmpegBinary, exitCode);
-            throw new Exception(err);
-        }
+        var runner = new ProcRunner(ffmpegBinary, "-y", "-i", VideoFile, posFile);
+        runner.Start(AbortEvent);
     }
 
-    public static void SplitFrames(string ffmpegBinary, string VideoFile, SplitProgress ProgressCB,
-                                   out uint NumFrames, out string ImagesDir)
+    public static void SplitFrames(
+        string ffmpegBinary, string VideoFile, SplitProgress ProgressCB,
+        AutoResetEvent AbortEvent,
+        out uint NumFrames, out string ImagesDir)
     {
         ImagesDir = GetDestinationDir(VideoFile);
         var frameTemplate = Path.Combine(ImagesDir, "%04d.jpg");
 
         Directory.CreateDirectory(ImagesDir);
 
-        var proc = Utils.Run(ffmpegBinary, "-i", VideoFile, frameTemplate);
-        proc.Start();
+        var runner = new ProcRunner(ffmpegBinary, "-i", VideoFile, frameTemplate);
+        var outputParser = new FFMPEGOutputParser(ProgressCB);
+        runner.StderrLineEvent += outputParser.ParseLine;
+        runner.Start(AbortEvent);
 
-        var oparser = new FFMPEGOutputParser(proc.StandardError, ProgressCB);
-        NumFrames = oparser.ParseOutput();
-
-        proc.WaitForExit();
-        var exitCode = proc.ExitCode;
-        if (exitCode != 0)
-        {
-            var err = string.Format("{0} failed, exit code {1}", ffmpegBinary, exitCode);
-            throw new Exception(err);
-        }
+        NumFrames = outputParser.LastFrame;
     }
 }

@@ -196,29 +196,6 @@ public class Utils
         }
     }
 
-    public static Process Run(string bin, params string[] args)
-    {
-        var psi = new ProcessStartInfo();
-        psi.FileName = bin;
-        psi.UseShellExecute = false;
-        psi.RedirectStandardOutput = true;
-        psi.RedirectStandardError = true;
-
-        /* add process arguments */
-        var argsStr = "";
-        foreach (var arg in args)
-        {
-            argsStr += $" {arg}";
-        }
-        psi.Arguments = argsStr;
-
-        var proc = new Process();
-        proc.StartInfo = psi;
-        proc.Start();
-
-        return proc;
-    }
-
     /*
      * do 'rm -rf <DirPath>'
      */

@@ -20,9 +20,9 @@ public class UIDispatcher : MonoBehaviour
         VideoLabel.text = Path.GetFileName(fileName);
     }
 
-    void ShowProgressBar()
+    void ShowProgressBar(SourceVideo.CancelImport CancelImport)
     {
-        MainThreadRunner.Run(() => ProgressBar.SetProgress());
+        MainThreadRunner.Run(() => ProgressBar.Show(() => CancelImport()));
     }
 
     void UpdateProgressBar(string stepName, float done)

@@ -6,6 +6,7 @@ using Hagring;
 
 public class MeshroomCompute
 {
+    const int POLL_FREQ = 1300; /* miliseconds */
     public delegate void ComputeProgress(int chunkNum, float done);
 
     delegate void ChunkProgress(float done);
@@ -52,29 +53,24 @@ public class MeshroomCompute
         string MeshroomComputeBin,
         string ImagesDir,
         string graph,
-        ChunkProgress ChunkProgressCB)
+        ChunkProgress ChunkProgressCB,
+        AutoResetEvent AbortEvent)
     {
         /* remove previous cache dir, if it exists */
         Utils.RemoveDir(Meshroom.GetCacheDir(ImagesDir));
 
         /* start meshroom compute process */
-        var proc = Utils.Run(MeshroomComputeBin, graph);
-        var graphName = Path.GetFileNameWithoutExtension(graph);
+        var runner = new ProcRunner(MeshroomComputeBin, graph);
+        runner.StartAsync();
 
+        /* poll progress until finished/aborted */
         var stepsPoller = MeshroomProgress.GetPoller(ImagesDir);
-        while (!proc.HasExited)
+        var graphName = Path.GetFileNameWithoutExtension(graph);
+        while (runner.IsRunning(AbortEvent, POLL_FREQ))
         {
             var done = stepsPoller.PollStepsDone();
             var total = stepsPoller.TotalSteps;
             ChunkProgressCB((float)done/(float)total);
-            Thread.Sleep(1300);
-        }
-
-        var exitCode = proc.ExitCode;
-        if (exitCode != 0)
-        {
-            var err = string.Format("{0} failed, exit code {1}", MeshroomComputeBin, exitCode);
-            throw new Exception(err);
         }
 
         CopyCamerasSFMFile(ImagesDir, graphName);
@@ -84,7 +80,8 @@ public class MeshroomCompute
             string MeshroomComputeBin,
             string SensorDatabase, string VocTree, string ImagesDir,
             TimeBase TimeBase, uint LastFrame,
-            ComputeProgress ComputeProgressCB)
+            ComputeProgress ComputeProgressCB,
+            AutoResetEvent AbortEvent)
     {
         var chunks = Chunks.GetChunks(TimeBase, LastFrame);
         var graphs = MeshroomGraphs(SensorDatabase, VocTree, ImagesDir, chunks);
@@ -93,7 +90,8 @@ public class MeshroomCompute
         foreach (var graph in graphs)
         {
             RunMeshroomCompute(MeshroomComputeBin, ImagesDir, graph,
-                               (done) => ComputeProgressCB(chunkNum, done));
+                               (done) => ComputeProgressCB(chunkNum, done),
+                               AbortEvent);
             chunkNum += 1;
         }
 
