@@ -9,20 +9,26 @@ public class UIDispatcher : MonoBehaviour
 
     void Awake()
     {
-        SourceVideo.VideoSwitchedEvent += SetCurrentVideo;
-        SourceVideo.ImportStartedEvent += ShowProgressBar;
+        SourceVideo.VideoOpenedEvent += SetCurrentVideo;
+        SourceVideo.ImportStartedEvent += HandleImportStarted;
         SourceVideo.ImportProgressEvent += UpdateProgressBar;
         SourceVideo.ImportFinishedEvent += HideProgressBar;
     }
 
-    void SetCurrentVideo(string fileName)
+    void SetCurrentVideo(string videoFile)
     {
-        VideoLabel.text = Path.GetFileName(fileName);
+        VideoLabel.text = Path.GetFileName(videoFile);
     }
 
-    void ShowProgressBar(SourceVideo.CancelImport CancelImport)
+    void HandleImportStarted(string videoFile, SourceVideo.CancelImport CancelImport)
     {
-        MainThreadRunner.Run(() => ProgressBar.Show(() => CancelImport()));
+        MainThreadRunner.Run(() => ShowImportUI(videoFile, CancelImport));
+    }
+
+    void ShowImportUI(string videoFile, SourceVideo.CancelImport CancelImport)
+    {
+        SetCurrentVideo(videoFile);
+        ProgressBar.Show(() => CancelImport());
     }
 
     void UpdateProgressBar(string stepName, float done)

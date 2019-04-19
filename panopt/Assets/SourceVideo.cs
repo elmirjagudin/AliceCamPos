@@ -1,3 +1,4 @@
+using System.IO;
 using System.Threading;
 using System.Collections;
 using System.Collections.Generic;
@@ -10,10 +11,10 @@ public class SourceVideo
 
     public delegate void CancelImport();
 
-    public delegate void VideoSwitched(string fileName);
-    public static event VideoSwitched VideoSwitchedEvent;
+    public delegate void VideoOpened(string videoFile);
+    public static event VideoOpened VideoOpenedEvent;
 
-    public delegate void ImportStarted(CancelImport CancelImport);
+    public delegate void ImportStarted(string videoFile, CancelImport CancelImport);
     public static event ImportStarted ImportStartedEvent;
 
     public delegate void ImportProgress(string stepName, float done);
@@ -38,10 +39,12 @@ public class SourceVideo
         ImportProgressEvent?.Invoke($"importing: analyzing segment {chunkNum+1}", done);
     }
 
-    static void ImportVideo(string fileName)
+    static void ImportVideo(string videoFile)
     {
         AutoResetEvent AbortEvent = new AutoResetEvent(false);
-        ImportStartedEvent?.Invoke(() => AbortEvent.Set());
+        ImportStartedEvent?.Invoke(
+            videoFile,
+            () => AbortEvent.Set());
 
         try
         {
@@ -49,14 +52,19 @@ public class SourceVideo
             string ImagesDir;
 
             PrepVideo.SplitFrames(
-                FFMPEG_BIN, fileName, SplitProgress, AbortEvent,
+                FFMPEG_BIN, videoFile, SplitProgress, AbortEvent,
                 out NumFrames, out ImagesDir);
-            PrepVideo.ExtractSubtitles(FFMPEG_BIN, fileName, AbortEvent);
 
             MeshroomCompute.PhotogrammImages(
                 MESHROOM_COMPUTE_BIN, SENSOR_DATABASE, VOC_TREE,
                 ImagesDir, TIME_BASE, NumFrames, MeshroomProgress,
                 AbortEvent);
+
+            /*
+             * create positions file last, we use it to
+             * figure out if a video have been imported
+             */
+            PrepVideo.ExtractSubtitles(FFMPEG_BIN, videoFile, AbortEvent);
         }
         catch (ProcessAborted)
         {
@@ -66,14 +74,30 @@ public class SourceVideo
         finally
         {
             ImportFinishedEvent?.Invoke();
+            VideoOpenedEvent?.Invoke(videoFile);
         }
     }
 
-    public static void Open(string fileName)
+    static bool IsImported(string videoFile)
     {
-        VideoSwitchedEvent?.Invoke(fileName);
+        /*
+         * we check the presens of positions file to
+         * figure out if the video have been imported
+         */
+        var positionsFile = PrepVideo.GetPositionsFilePath(videoFile);
+        return File.Exists(positionsFile);
+    }
 
-        Utils.StartThread(() => ImportVideo(fileName), "ImportVideo");
+    public static void Open(string videoFile)
+    {
+        if (IsImported(videoFile))
+        {
+            VideoOpenedEvent?.Invoke(videoFile);
+            return;
+        }
+
+        /* start the import process */
+        Utils.StartThread(() => ImportVideo(videoFile), "ImportVideo");
     }
 }
 

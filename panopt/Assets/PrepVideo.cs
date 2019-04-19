@@ -100,11 +100,15 @@ public class PrepVideo
         return Path.Combine(dirName, DATA_DIR, fileName);
     }
 
+    public static string GetPositionsFilePath(string VideoFile)
+    {
+        return Path.Combine(GetDestinationDir(VideoFile), POSITIONS_FILE);
+    }
+
     public static void ExtractSubtitles(string ffmpegBinary, string VideoFile,
                                         AutoResetEvent AbortEvent)
     {
-        var destDir = GetDestinationDir(VideoFile);
-        var posFile = Path.Combine(destDir, POSITIONS_FILE);
+        var posFile = GetPositionsFilePath(VideoFile);
 
         var runner = new ProcRunner(ffmpegBinary, "-y", "-i", VideoFile, posFile);
         runner.Start(AbortEvent);
