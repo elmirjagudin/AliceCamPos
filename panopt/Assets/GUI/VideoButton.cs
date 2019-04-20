@@ -5,12 +5,10 @@ using SFB;
 
 public class VideoButton : MonoBehaviour
 {
-    string LastPickedDirectory = "";
-
     string GetFilePath()
     {
         var paths = StandaloneFileBrowser.OpenFilePanel(
-            "Pick Video...", LastPickedDirectory, "mov", false);
+            "Pick Video...", Persisted.LastUsedDirectory, "mov", false);
 
         if (paths.Length == 0)
         {
@@ -35,7 +33,7 @@ public class VideoButton : MonoBehaviour
             return;
         }
 
-        LastPickedDirectory = Path.GetDirectoryName(path);
+        Persisted.LastUsedDirectory = Path.GetDirectoryName(path);
         SourceVideo.Open(path);
     }
 }
