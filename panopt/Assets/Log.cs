@@ -16,3 +16,21 @@ public class Log
         Console.Error.WriteLine(format, args);
     }
 }
+
+///
+/// shorthand wrapper, log with:
+///
+///     L.M("my message");
+///
+public class L
+{
+    public static void M(object msg)
+    {
+        Log.Msg("{0}", msg);
+    }
+
+    public static void M(string format, params object[] args)
+    {
+        Log.Msg(format, args);
+    }
+}

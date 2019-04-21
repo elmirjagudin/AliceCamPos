@@ -20,6 +20,9 @@ public class SourceVideo
     public delegate void ImportProgress(string stepName, float done);
     public static event ImportProgress ImportProgressEvent;
 
+    public delegate void ImportCanceled();
+    public static event ImportCanceled ImportCanceledEvent;
+
     public delegate void ImportFinished();
     public static event ImportFinished ImportFinishedEvent;
 
@@ -49,15 +52,15 @@ public class SourceVideo
         try
         {
             uint NumFrames;
-            string ImagesDir;
 
             PrepVideo.SplitFrames(
                 FFMPEG_BIN, videoFile, SplitProgress, AbortEvent,
-                out NumFrames, out ImagesDir);
+                out NumFrames);
 
             MeshroomCompute.PhotogrammImages(
                 MESHROOM_COMPUTE_BIN, SENSOR_DATABASE, VOC_TREE,
-                ImagesDir, TIME_BASE, NumFrames, MeshroomProgress,
+                PrepVideo.GetImagesDir(videoFile),
+                TIME_BASE, NumFrames, MeshroomProgress,
                 AbortEvent);
 
             /*
@@ -65,16 +68,12 @@ public class SourceVideo
              * figure out if a video have been imported
              */
             PrepVideo.ExtractSubtitles(FFMPEG_BIN, videoFile, AbortEvent);
+            ImportFinishedEvent?.Invoke();
+            VideoOpenedEvent?.Invoke(videoFile);
         }
         catch (ProcessAborted)
         {
-            //TODO some sort of UI handling of this!?
-            Log.Msg("import canceled by the user");
-        }
-        finally
-        {
-            ImportFinishedEvent?.Invoke();
-            VideoOpenedEvent?.Invoke(videoFile);
+            ImportCanceledEvent?.Invoke();
         }
     }
 

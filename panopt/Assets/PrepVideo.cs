@@ -92,7 +92,7 @@ public class PrepVideo
     const string DATA_DIR = "panopt";
     const string POSITIONS_FILE = "positions.srt";
 
-    static string GetDestinationDir(string VideoFile)
+    public static string GetImagesDir(string VideoFile)
     {
         var dirName = Path.GetDirectoryName(VideoFile);
         var fileName = Path.GetFileNameWithoutExtension(VideoFile);
@@ -102,7 +102,7 @@ public class PrepVideo
 
     public static string GetPositionsFilePath(string VideoFile)
     {
-        return Path.Combine(GetDestinationDir(VideoFile), POSITIONS_FILE);
+        return Path.Combine(GetImagesDir(VideoFile), POSITIONS_FILE);
     }
 
     public static void ExtractSubtitles(string ffmpegBinary, string VideoFile,
@@ -117,9 +117,9 @@ public class PrepVideo
     public static void SplitFrames(
         string ffmpegBinary, string VideoFile, SplitProgress ProgressCB,
         AutoResetEvent AbortEvent,
-        out uint NumFrames, out string ImagesDir)
+        out uint NumFrames)
     {
-        ImagesDir = GetDestinationDir(VideoFile);
+        var ImagesDir = GetImagesDir(VideoFile);
         var frameTemplate = Path.Combine(ImagesDir, "%04d.jpg");
 
         Directory.CreateDirectory(ImagesDir);

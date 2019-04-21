@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class FrameTicker : MonoBehaviour
+public class Frames : MonoBehaviour
 {
     public Cams cams;
     public GameObject texRecorder;
@@ -14,23 +14,29 @@ public class FrameTicker : MonoBehaviour
 
     enum TickingMode
     {
+        Idle,
         Manual,
         Roll,
         RecordVideo
     }
 
-    TickingMode tickingMode = TickingMode.Manual;
+    TickingMode tickingMode = TickingMode.Idle;
 
-    void Start()
+    public void OpenVideo(string videoFile)
     {
-        cams.Init(out FirstFrame, out LastFrame);
+        cams.Init(videoFile, out FirstFrame, out LastFrame);
         GotoFrame(FirstFrame);
+
+        tickingMode = TickingMode.Manual;
     }
 
     void Update()
     {
         switch (tickingMode)
         {
+            case TickingMode.Idle:
+                /* nop */
+                break;
             case TickingMode.Manual:
                 ManualTick();
                 break;

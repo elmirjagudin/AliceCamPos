@@ -8,11 +8,6 @@ using Brab;
 public class Cams : MonoBehaviour
 {
     const string FILE_EXT = "jpg";
-    const string IMAGES_DIR = "/home/boris/droneMov/falafel_low";
-    //const string CAMERAS_SFM = "/home/boris/droneMov/falafel_low/chunk0/MeshroomCache/StructureFromMotion/40f1b9a7b5de1da99078b9caabe2935e8503c7d9/cameras.sfm";
-    const string CAMERAS_SFM = "/home/boris/droneMov/falafel_low/chunk1/MeshroomCache/StructureFromMotion/f52b1f0c572f1b5c8f35980481c004f9685dd455/cameras.sfm";
-    //const string CAMERAS_SFM = "/home/boris/droneMov/falafel_low/chunk2/MeshroomCache/StructureFromMotion/085f865e6a21635bbeb7d511a3026135c243b156/cameras.sfm";
-    const string CAPTIONS_FILE = "/home/boris/droneMov/falafel_low/positions.srt";
 
     public Text PositionName;
     public Camera RenderCamera;
@@ -22,14 +17,17 @@ public class Cams : MonoBehaviour
 
     Dictionary<uint, GameObject> CamsPositions = new Dictionary<uint, GameObject>();
 
-    public void Init(out uint FirstFrame, out uint LastFrame)
+    public void Init(string VideoFile, out uint FirstFrame, out uint LastFrame)
     {
-        Background.ImagesDir = IMAGES_DIR;
+        var ImagesDir = PrepVideo.GetImagesDir(VideoFile);
+
+        Background.ImagesDir = ImagesDir;
         Background.FileExt = FILE_EXT;
 
         var rot180z = Quaternion.Euler(0, 0, 180);
 
-        foreach (var pose in AliceSfm.Load(CAMERAS_SFM))
+        var sfmFile = Path.Combine(ImagesDir, "chunk0.sfm");
+        foreach (var pose in AliceSfm.Load(sfmFile))
         {
             var cam = Instantiate(CamPrefab, gameObject.transform);
             cam.name = pose.Item1;
@@ -49,7 +47,8 @@ public class Cams : MonoBehaviour
         FirstFrame = frameNums.First();
         LastFrame = frameNums.Last();
 
-        GNSSTransform.CalcTransform(CAPTIONS_FILE, frameNums.ToArray(), CamsPositions);
+        var posFile = PrepVideo.GetPositionsFilePath(VideoFile);
+        GNSSTransform.CalcTransform(posFile, frameNums.ToArray(), CamsPositions);
     }
 
     ///

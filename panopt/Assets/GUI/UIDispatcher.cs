@@ -6,18 +6,27 @@ public class UIDispatcher : MonoBehaviour
 {
     public Text VideoLabel;
     public ProgressBar ProgressBar;
+    public Frames Frames;
 
     void Awake()
     {
-        SourceVideo.VideoOpenedEvent += SetCurrentVideo;
         SourceVideo.ImportStartedEvent += HandleImportStarted;
         SourceVideo.ImportProgressEvent += UpdateProgressBar;
         SourceVideo.ImportFinishedEvent += HideProgressBar;
+        SourceVideo.ImportCanceledEvent += HandleImportCanceled;
+
+        SourceVideo.VideoOpenedEvent += HandleVideoOpened;
     }
 
     void SetCurrentVideo(string videoFile)
     {
         VideoLabel.text = Path.GetFileName(videoFile);
+    }
+
+    void HandleVideoOpened(string videoFile)
+    {
+        SetCurrentVideo(videoFile);
+        Frames.OpenVideo(videoFile);
     }
 
     void HandleImportStarted(string videoFile, SourceVideo.CancelImport CancelImport)
@@ -41,4 +50,12 @@ public class UIDispatcher : MonoBehaviour
         MainThreadRunner.Run(() => ProgressBar.Hide());
     }
 
+    void HandleImportCanceled()
+    {
+        MainThreadRunner.Run(delegate ()
+        {
+            ProgressBar.Hide();
+            SetCurrentVideo("");
+        });
+    }
 }
