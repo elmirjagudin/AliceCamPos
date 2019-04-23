@@ -55,7 +55,36 @@ class Sfm
 
 public class AliceSfm : MonoBehaviour
 {
-    public static IEnumerable<Tuple<string, float[], float[]>> Load(string SfmFile)
+    static IEnumerable<string> SfmFileNames(string ImagesDir)
+    {
+        yield return Path.Combine(ImagesDir, "chunk3.sfm");
+
+//         for (int i = 1; ; i += 1)
+//         {
+//             var path = Path.Combine(ImagesDir, $"chunk{i}_aligned.sfm");
+// L.M($"{path} {File.Exists(path)}");
+
+//             if (!File.Exists(path))
+//             {
+//                 /* no more chunks! */
+//                 break;
+//             }
+//             yield return path;
+//         }
+    }
+
+    public static IEnumerable<Tuple<string, float[], float[]>> Load(string ImagesDir)
+    {
+        foreach (var sfmFile in SfmFileNames(ImagesDir))
+        {
+            foreach (var view in LoadFile(sfmFile))
+            {
+                yield return view;
+            }
+        }
+    }
+
+    static IEnumerable<Tuple<string, float[], float[]>> LoadFile(string SfmFile)
     {
         var sfm = JsonConvert.DeserializeObject<Sfm>(File.ReadAllText(SfmFile));
 

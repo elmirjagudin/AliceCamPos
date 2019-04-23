@@ -49,6 +49,20 @@ public class MeshroomCompute
         File.Copy(camsSfmFile, destFile, true);
     }
 
+    static int hackCntr = 0;
+
+    static void RemoveCacheDir(string ImagesDir)
+    {
+        var cacheDir = Meshroom.GetCacheDir(ImagesDir);
+        if (Directory.Exists(cacheDir))
+        {
+            var destDir = Path.Combine(ImagesDir, $"MeshroomCache{hackCntr++}");
+L.M($"'{cacheDir}' -> '{destDir}'");
+            Directory.Move(cacheDir, destDir);
+        }
+        Utils.RemoveDir(cacheDir);
+    }
+
     static void RunMeshroomCompute(
         string MeshroomComputeBin,
         string ImagesDir,
@@ -57,7 +71,7 @@ public class MeshroomCompute
         AutoResetEvent AbortEvent)
     {
         /* remove previous cache dir, if it exists */
-        Utils.RemoveDir(Meshroom.GetCacheDir(ImagesDir));
+        RemoveCacheDir(ImagesDir);
 
         /* start meshroom compute process */
         var runner = new ProcRunner(MeshroomComputeBin, graph);
@@ -96,6 +110,6 @@ public class MeshroomCompute
         }
 
         /* clean-up last meshroom cache directory */
-        Utils.RemoveDir(Meshroom.GetCacheDir(ImagesDir));
+        RemoveCacheDir(ImagesDir);
     }
 }

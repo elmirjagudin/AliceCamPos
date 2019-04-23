@@ -26,9 +26,17 @@ public class Cams : MonoBehaviour
 
         var rot180z = Quaternion.Euler(0, 0, 180);
 
-        var sfmFile = Path.Combine(ImagesDir, "chunk0.sfm");
-        foreach (var pose in AliceSfm.Load(sfmFile))
+        foreach (var pose in AliceSfm.Load(ImagesDir))
         {
+            var frameNum = Parse.Uint(pose.Item1);
+            if (CamsPositions.ContainsKey(frameNum))
+            {
+                /*
+                 * don't add overlapping frames between chunks
+                 */
+                continue;
+            }
+
             var cam = Instantiate(CamPrefab, gameObject.transform);
             cam.name = pose.Item1;
 
@@ -40,7 +48,7 @@ public class Cams : MonoBehaviour
             cam.transform.position = unityPos;
             cam.transform.rotation = R2Quaternion(pose.Item3) * rot180z;
 
-            CamsPositions.Add(Parse.Uint(cam.name), cam);
+            CamsPositions.Add(frameNum, cam);
         }
 
         var frameNums = CamsPositions.Keys.OrderBy(x=>x);

@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Collections.Generic;
 
 public struct TimeBase
@@ -9,7 +10,9 @@ public struct TimeBase
 
 public class Chunks
 {
-    const uint CHUNK_DURATION = 20 * 1000; /* in miliseconds */
+    const uint MIN_OVERLAP = 20;                         /* in frames */
+    const int CHUNK_LENGTH = 40;                         /* in frames */
+    const uint CHUNK_DURATION = CHUNK_LENGTH / 2 * 1000; /* in miliseconds */
 
     static uint FrameCloseTo(uint TimeStamp, TimeBase TimeBase)
     {
@@ -30,17 +33,34 @@ public class Chunks
         }
     }
 
+    static void GetChunkParameters(int Length, out int ChunkNums, out int Overlap)
+    {
+        ChunkNums = (Length / CHUNK_LENGTH);
+
+        do
+        {
+            ChunkNums += 1;
+            Overlap = -(Length - ChunkNums * CHUNK_LENGTH) / (ChunkNums - 1);
+        } while (Overlap < MIN_OVERLAP);
+    }
+
     public static IEnumerable<IEnumerable<uint>> GetChunks(TimeBase TimeBase, uint LastFrame)
     {
         var lastPTS = TimeBase.Numerator * (LastFrame - 1);
         var lastTimeStamp = (uint)((double)(lastPTS)/(double)TimeBase.Denominator * 1000.0);
 
-        for (uint ts = 0; ts < lastTimeStamp - CHUNK_DURATION; ts += CHUNK_DURATION)
+
+        var frames = KeyFrames(0, lastTimeStamp, TimeBase).ToArray();
+
+        int ChunkNums, Overlap;
+        GetChunkParameters(frames.Length, out ChunkNums, out Overlap);
+
+        for (int chunk = 0; chunk < ChunkNums; chunk += 1)
         {
-            yield return KeyFrames(ts, ts + CHUNK_DURATION, TimeBase);
+            //TODO: take care of the last chunk, as right now it can potentionally be shorter
+            // then CHUNK_LENGTH, it needs to be moved 'left' a bit more then Overlap
+            var start = chunk * (CHUNK_LENGTH - Overlap);
+            yield return frames.Skip(start).Take(CHUNK_LENGTH);
         }
-
-        yield return KeyFrames(lastTimeStamp - CHUNK_DURATION, lastTimeStamp, TimeBase);
-
     }
 }

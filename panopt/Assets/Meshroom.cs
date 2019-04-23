@@ -1,5 +1,34 @@
 using System;
 using System.IO;
+using System.Collections.Generic;
+
+///
+/// Handles generation of unique ID number,
+/// suitable as ID for views and poses
+///
+class IDs
+{
+    /*
+     * seems that view and pose ID must be 'large numbers',
+     * otherwise the meshroom_compute will fail on
+     * 'DepthMap' node
+     */
+    const uint MAGIC_LARGE_NUMBER = 60903726;
+
+    static uint NextId = MAGIC_LARGE_NUMBER;
+    static Dictionary<string, uint> ids = new Dictionary<string, uint>();
+
+    public static uint Get(string image)
+    {
+        if (!ids.ContainsKey(image))
+        {
+            ids[image] = NextId++;
+        }
+
+        return ids[image];
+    }
+}
+
 
 public class Meshroom
 {

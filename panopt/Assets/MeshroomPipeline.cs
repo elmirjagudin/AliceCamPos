@@ -36,15 +36,12 @@ class CameraInit : Node
         uint i = 0;
         foreach (var img in images)
         {
+            var Id = IDs.Get(img);
+
             views.Add(new
             {
-                /*
-                 * seems that view and pose ID must be 'large numbers',
-                 * otherwise the meshroom_compute will fail on
-                 * 'DepthMap' node
-                 */
-                viewId = MAGIC_LARGE_NUMBER + i,
-                poseId = MAGIC_LARGE_NUMBER + i,
+                viewId = Id,
+                poseId = Id,
                 path = img,
                 intrinsicId = INTRINSIC_ID,
                 rigId = -1,
