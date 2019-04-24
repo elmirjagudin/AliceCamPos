@@ -7,7 +7,7 @@ using Hagring;
 
 public class SourceVideo
 {
-    static TimeBase TIME_BASE = new TimeBase { Numerator = 1001, Denominator = 30000 };
+    public static TimeBase TIME_BASE = new TimeBase { Numerator = 1001, Denominator = 30000 };
 
     public delegate void CancelImport();
 
@@ -68,6 +68,7 @@ public class SourceVideo
              * figure out if a video have been imported
              */
             PrepVideo.ExtractSubtitles(FFMPEG_BIN, videoFile, AbortEvent);
+
             ImportFinishedEvent?.Invoke();
             VideoOpenedEvent?.Invoke(videoFile);
         }

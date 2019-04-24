@@ -10,11 +10,11 @@ public struct TimeBase
 
 public class Chunks
 {
-    const uint MIN_OVERLAP = 20;                         /* in frames */
-    const int CHUNK_LENGTH = 40;                         /* in frames */
+    const uint MIN_OVERLAP = 0;                          /* in frames */
+    const int CHUNK_LENGTH = 50;                         /* in frames */
     const uint CHUNK_DURATION = CHUNK_LENGTH / 2 * 1000; /* in miliseconds */
 
-    static uint FrameCloseTo(uint TimeStamp, TimeBase TimeBase)
+    public static uint FrameCloseTo(uint TimeStamp, TimeBase TimeBase)
     {
         var tbNum = (double) TimeBase.Numerator;
         var tbDen = (double) TimeBase.Denominator;

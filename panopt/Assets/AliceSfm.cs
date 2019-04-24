@@ -21,10 +21,34 @@ class Metadata
     public double altitude;
 }
 
+class Intrinsic
+{
+    public string intrinsicId = "1";
+
+    //TODO: this is DUPLICATED at other place in the code
+    //TODO: make it DRY
+    public string width = "3840";
+    public string height = "2160";
+    public string serialNumber = "unknown";
+    public string type = "radial3";
+    public string initializationMode = "unknown";
+    public string pxInitialFocalLength = "2720.4401499999999";
+    public string pxFocalLength = "2800.1921305708561";
+    public string[] principalPoint = new string[] {"1937.4609267594676", "1032.2384580459113"};
+    public string[] distortionParams = new string[] {
+        "0.00077539660382329283",
+        "-0.0094863655387147482",
+        "0.011155234182817129"
+    };
+    public string locked = "0";
+}
+
 class View
 {
+    public string viewId;
     public string poseId;
     public string path;
+    public string intrinsicId = "1";
     public Metadata metadata;
 }
 
@@ -47,8 +71,10 @@ class PoseDesc
 
 class Sfm
 {
+    public string[] version = new string[] {"1", "0", "0"};
     public View[] views;
     public PoseDesc[] poses;
+    public Intrinsic[] intrinsics = new Intrinsic[] { new Intrinsic {} };
 }
 
 #pragma warning restore

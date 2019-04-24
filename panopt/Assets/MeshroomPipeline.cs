@@ -36,7 +36,7 @@ class CameraInit : Node
         uint i = 0;
         foreach (var img in images)
         {
-            var Id = IDs.Get(img);
+            var Id = ViewIDs.Get(img);
 
             views.Add(new
             {

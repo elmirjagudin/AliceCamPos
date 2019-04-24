@@ -366,7 +366,7 @@ public class GNSSTransform : MonoBehaviour
         return (uint)Math.Round(ts);
     }
 
-    static Dictionary<uint, GPSPosition> LoadGNSSCoords(string CaptionsFile)
+    public static Dictionary<uint, GPSPosition> LoadGNSSCoords(string CaptionsFile)
     {
         var cp = new CaptionParser(CaptionsFile);
 

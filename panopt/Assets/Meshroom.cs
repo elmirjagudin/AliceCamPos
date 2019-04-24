@@ -4,9 +4,9 @@ using System.Collections.Generic;
 
 ///
 /// Handles generation of unique ID number,
-/// suitable as ID for views and poses
+/// suitable as ID for views
 ///
-class IDs
+class ViewIDs
 {
     /*
      * seems that view and pose ID must be 'large numbers',
@@ -15,17 +15,16 @@ class IDs
      */
     const uint MAGIC_LARGE_NUMBER = 60903726;
 
-    static uint NextId = MAGIC_LARGE_NUMBER;
-    static Dictionary<string, uint> ids = new Dictionary<string, uint>();
-
-    public static uint Get(string image)
+    public static uint Get(string FrameFile)
     {
-        if (!ids.ContainsKey(image))
-        {
-            ids[image] = NextId++;
-        }
+        /* parse frame number from it's file name */
+        var frameNumber = UInt32.Parse(Path.GetFileNameWithoutExtension(FrameFile));
+        return Get(frameNumber);
+    }
 
-        return ids[image];
+    public static uint Get(uint FrameNumber)
+    {
+        return FrameNumber+MAGIC_LARGE_NUMBER;
     }
 }
 
