@@ -25,6 +25,7 @@ public class Frames : MonoBehaviour
     public void OpenVideo(string videoFile)
     {
         cams.Init(videoFile, out FirstFrame, out LastFrame);
+        cams.AddTestModels();
         GotoFrame(FirstFrame);
 
         tickingMode = TickingMode.Manual;

@@ -83,34 +83,28 @@ public class AliceSfm : MonoBehaviour
 {
     static IEnumerable<string> SfmFileNames(string ImagesDir)
     {
-        yield return Path.Combine(ImagesDir, "chunk3.sfm");
-
-//         for (int i = 1; ; i += 1)
-//         {
-//             var path = Path.Combine(ImagesDir, $"chunk{i}_aligned.sfm");
-// L.M($"{path} {File.Exists(path)}");
-
-//             if (!File.Exists(path))
-//             {
-//                 /* no more chunks! */
-//                 break;
-//             }
-//             yield return path;
-//         }
-    }
-
-    public static IEnumerable<Tuple<string, float[], float[]>> Load(string ImagesDir)
-    {
-        foreach (var sfmFile in SfmFileNames(ImagesDir))
+        for (int i = 0; ; i += 1)
         {
-            foreach (var view in LoadFile(sfmFile))
+            var path = Path.Combine(ImagesDir, $"chunk{i}.sfm");
+
+            if (!File.Exists(path))
             {
-                yield return view;
+                /* no more chunks! */
+                break;
             }
+            yield return path;
         }
     }
 
-    static IEnumerable<Tuple<string, float[], float[]>> LoadFile(string SfmFile)
+    public static IEnumerable<IEnumerable<(string viewName, float[] center, float[] rotation)>> Load(string ImagesDir)
+    {
+        foreach (var sfmFile in SfmFileNames(ImagesDir))
+        {
+            yield return LoadFile(sfmFile);
+        }
+    }
+
+    static IEnumerable<(string viewName, float[] center, float[] rotation)> LoadFile(string SfmFile)
     {
         var sfm = JsonConvert.DeserializeObject<Sfm>(File.ReadAllText(SfmFile));
 
@@ -131,7 +125,7 @@ public class AliceSfm : MonoBehaviour
 
             var t = PoseTransforms[view.poseId];
 
-            yield return Tuple.Create(viewName, t.center, t.rotation);
+            yield return (viewName, t.center, t.rotation);
         }
     }
 }

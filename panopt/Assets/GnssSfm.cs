@@ -29,7 +29,7 @@ public class GnssSfm
 
     static (View view, PoseDesc pose) GnssToViewPose(GPSPosition origin, GPSPosition gnssPos, uint TimeStamp)
     {
-        var frameNum = Chunks.FrameCloseTo(TimeStamp + 500, SourceVideo.TIME_BASE);
+        var frameNum = FrameChunks.FrameCloseTo(TimeStamp + 500, SourceVideo.TIME_BASE);
         var id = ViewIDs.Get(frameNum);
 
         var pos = origin.GetVector(gnssPos);

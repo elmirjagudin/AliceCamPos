@@ -97,7 +97,7 @@ L.M($"'{cacheDir}' -> '{destDir}'");
             ComputeProgress ComputeProgressCB,
             AutoResetEvent AbortEvent)
     {
-        var chunks = Chunks.GetChunks(TimeBase, LastFrame);
+        var chunks = FrameChunks.GetChunks(TimeBase, LastFrame);
         var graphs = MeshroomGraphs(SensorDatabase, VocTree, ImagesDir, chunks);
 
         int chunkNum = 0;

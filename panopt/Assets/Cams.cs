@@ -1,9 +1,52 @@
+using System;
 using System.IO;
 using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using Hagring;
 using Brab;
+
+class Chunk
+{
+    public Dictionary<uint, GameObject> CamsPositions;
+    public uint FirstFrame;
+    public uint LastFrame;
+
+    /* transfrom from GNSS positions */
+    public float scale;
+    public Vector3 position;
+    public Quaternion rotation;
+    public GPSPosition GNSSOrigin;
+
+    public bool IncludesFrame(uint FrameNum)
+    {
+        return FirstFrame <= FrameNum && FrameNum <= LastFrame;
+    }
+}
+
+class ChunksSequence
+{
+    List<Chunk> chunks = new List<Chunk>();
+
+    public void AddChunk(Chunk chunk)
+    {
+        chunks.Add(chunk);
+    }
+
+    public Chunk GetChunk(uint FrameNum)
+    {
+        foreach (var chunk in chunks)
+        {
+            if (chunk.IncludesFrame(FrameNum))
+            {
+                return chunk;
+            }
+        }
+
+        return null;
+    }
+}
 
 public class Cams : MonoBehaviour
 {
@@ -15,7 +58,10 @@ public class Cams : MonoBehaviour
     public GNSSTransform GNSSTransform;
     public BackgroundImage Background;
 
-    Dictionary<uint, GameObject> CamsPositions = new Dictionary<uint, GameObject>();
+    ChunksSequence ChunksSequence = new ChunksSequence();
+    Chunk CurrentChunk = null;
+
+    Quaternion rot180z;
 
     public void Init(string VideoFile, out uint FirstFrame, out uint LastFrame)
     {
@@ -24,39 +70,58 @@ public class Cams : MonoBehaviour
         Background.ImagesDir = ImagesDir;
         Background.FileExt = FILE_EXT;
 
-        var rot180z = Quaternion.Euler(0, 0, 180);
+        rot180z = Quaternion.Euler(0, 0, 180);
 
-        foreach (var pose in AliceSfm.Load(ImagesDir))
+        var posFile = PrepVideo.GetPositionsFilePath(VideoFile);
+        FirstFrame = UInt32.MaxValue;
+        LastFrame = 0;
+
+        foreach (var viewsChunk in AliceSfm.Load(ImagesDir))
         {
-            var frameNum = Parse.Uint(pose.Item1);
-            if (CamsPositions.ContainsKey(frameNum))
-            {
-                /*
-                 * don't add overlapping frames between chunks
-                 */
-                continue;
-            }
+            var chunk = InitChunk(viewsChunk, posFile);
+            FirstFrame = Math.Min(FirstFrame, chunk.FirstFrame);
+            LastFrame = Math.Max(LastFrame, chunk.LastFrame);
+
+            ChunksSequence.AddChunk(chunk);
+        }
+    }
+
+    Chunk InitChunk(IEnumerable<(string viewName, float[] center, float[] rotation)> views,
+                    string posFile)
+    {
+        var CamsPositions = new Dictionary<uint, GameObject>();
+
+        foreach (var pose in views)
+        {
+            var frameNum = Parse.Uint(pose.viewName);
 
             var cam = Instantiate(CamPrefab, gameObject.transform);
-            cam.name = pose.Item1;
+            cam.name = pose.viewName;
 
             var unityPos = new Vector3(
-                    -pose.Item2[0],
-                    pose.Item2[1],
-                    pose.Item2[2]);
+                    -pose.center[0],
+                    pose.center[1],
+                    pose.center[2]);
 
             cam.transform.position = unityPos;
-            cam.transform.rotation = R2Quaternion(pose.Item3) * rot180z;
+            cam.transform.rotation = R2Quaternion(pose.rotation) * rot180z;
 
             CamsPositions.Add(frameNum, cam);
         }
 
         var frameNums = CamsPositions.Keys.OrderBy(x=>x);
-        FirstFrame = frameNums.First();
-        LastFrame = frameNums.Last();
+        var gnssTrans = GNSSTransform.CalcTransform(posFile, frameNums.ToArray(), CamsPositions);
 
-        var posFile = PrepVideo.GetPositionsFilePath(VideoFile);
-        GNSSTransform.CalcTransform(posFile, frameNums.ToArray(), CamsPositions);
+        return new Chunk
+        {
+            CamsPositions = CamsPositions,
+            FirstFrame = frameNums.First(),
+            LastFrame = frameNums.Last(),
+            scale = gnssTrans.scale,
+            position = gnssTrans.offset,
+            rotation = gnssTrans.rotation,
+            GNSSOrigin = gnssTrans.GNSSOrigin,
+        };
     }
 
     ///
@@ -76,18 +141,18 @@ public class Cams : MonoBehaviour
         return quat;
     }
 
-    void InterpolateCamPos(uint frameNum, out Vector3 position, out Quaternion rotation)
+    void InterpolateCamPos(Chunk chunk, uint frameNum, out Vector3 position, out Quaternion rotation)
     {
         uint from;
         for (from = frameNum;
-             !CamsPositions.ContainsKey(from);
+             !chunk.CamsPositions.ContainsKey(from);
              from -= 1)
         {
         }
 
         uint to;
         for (to = frameNum;
-             !CamsPositions.ContainsKey(to);
+             !chunk.CamsPositions.ContainsKey(to);
              to += 1)
         {
         }
@@ -96,8 +161,8 @@ public class Cams : MonoBehaviour
         var cur = (float)frameNum - from;
         var t = cur/len;
 
-        var fromTrans = CamsPositions[from].transform;
-        var toTrans = CamsPositions[to].transform;
+        var fromTrans = chunk.CamsPositions[from].transform;
+        var toTrans = chunk.CamsPositions[to].transform;
 
         position = Vector3.Lerp(fromTrans.position, toTrans.position, t);
         rotation = Quaternion.Slerp(fromTrans.rotation, toTrans.rotation, t);
@@ -109,12 +174,19 @@ public class Cams : MonoBehaviour
         PositionName.text = frameName;
         Background.ShowImage(frameName);
 
+        var chunk = ChunksSequence.GetChunk(FrameNum);
+        if (chunk != CurrentChunk)
+        {
+            CurrentChunk = chunk;
+            GNSSTransform.SetTransform(chunk.position, chunk.rotation, chunk.scale, chunk.GNSSOrigin);
+        }
+
         Vector3 position = Vector3.zero;
         Quaternion rotation = Quaternion.identity;
 
-        if (CamsPositions.ContainsKey(FrameNum))
+        if (chunk.CamsPositions.ContainsKey(FrameNum))
         {
-            var t = CamsPositions[FrameNum].transform;
+            var t = chunk.CamsPositions[FrameNum].transform;
             position = t.position;
             rotation = t.rotation;
 
@@ -122,7 +194,7 @@ public class Cams : MonoBehaviour
         }
         else
         {
-            InterpolateCamPos(FrameNum, out position, out rotation);
+            InterpolateCamPos(chunk, FrameNum, out position, out rotation);
             PositionName.color = Color.black;
         }
 
@@ -130,5 +202,11 @@ public class Cams : MonoBehaviour
 
         camTrans.localPosition = position;
         camTrans.localRotation = rotation;
+    }
+
+    //debug wrapper
+    public void AddTestModels()
+    {
+        GNSSTransform.AddTestModels();
     }
 }

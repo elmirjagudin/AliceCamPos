@@ -82,7 +82,6 @@ class Scaler
         }
 
         var scale = (sfm*gnss) / (gnss*gnss);
-Log.Msg("scale {0}", scale);
 
         return scale;
     }
@@ -177,14 +176,16 @@ public class GNSSTransform : MonoBehaviour
     public GameObject SFMPrefab;
     public GameObject RedBall;
 
-    public void CalcTransform(string CaptionsFile,
-                              uint[] FrameNums,
-                              Dictionary<uint, GameObject> SFMPositions)
-    {
+    List<(GPSPosition pos, GameObject obj)> Models = new List<(GPSPosition pos, GameObject obj)>();
 
-        var GNSSPositions = LoadGNSSCoords(CaptionsFile);
+    public
+        (Quaternion rotation, float scale, Vector3 offset, GPSPosition GNSSOrigin) CalcTransform(
+            string CaptionsFile, uint[] FrameNums, Dictionary<uint, GameObject> SFMPositions)
+    {
         Vector3 CamsOrigin;
         GPSPosition GNSSOrigin;
+
+        var GNSSPositions = LoadGNSSCoords(CaptionsFile);
 
         GetOrigins(FrameNums, SFMPositions, GNSSPositions, out CamsOrigin, out GNSSOrigin);
 
@@ -210,7 +211,21 @@ public class GNSSTransform : MonoBehaviour
 
         var transformer = new Transformer(CamsOrigin, GNSSOrigin, (float)scale, rotation);
 
-        Test(transformer, GNSSPositions.Values, rotation);
+        return (rotation, (float)scale, CamsOrigin, GNSSOrigin);
+    }
+
+    public void SetTransform(Vector3 position, Quaternion rotation, float scale, GPSPosition GNSSOrigin)
+    {
+        gameObject.transform.position = position;
+        gameObject.transform.rotation = rotation;
+        gameObject.transform.localScale = Vector3.one * scale;
+
+        foreach (var op in Models)
+        {
+            var obj = op.obj;
+            var pos = op.pos;
+            obj.transform.localPosition = GNSSOrigin.GetVector(pos);
+        }
     }
 
     IEnumerable<(Vector3 sfm, GPSPosition gnss)> PositionPairs(
@@ -245,103 +260,95 @@ public class GNSSTransform : MonoBehaviour
         }
     }
 
-    void AddPosition(string name, double Longitude, double Latitude, double Altitude,
-                     Transformer transformer, Quaternion rotation)
+    void AddPosition(string name, double Longitude, double Latitude, double Altitude)
     {
         var toSweref = GeodesyProjections.fromWGS84Converter("sweref_99_13_30");
-        AddPosition(name, toSweref(Longitude, Latitude, Altitude), transformer, rotation, PrimitiveType.Cylinder);
+        AddPosition(name, toSweref(Longitude, Latitude, Altitude), PrimitiveType.Cylinder);
     }
 
-    void AddPosition(string name, GPSPosition pos, Transformer transformer, Quaternion rotation,
-                    PrimitiveType objType = PrimitiveType.Sphere)
+    void AddPosition(string name, GPSPosition pos,
+                     PrimitiveType objType = PrimitiveType.Sphere)
     {
-        var c = GameObject.CreatePrimitive(objType);
-        c.transform.rotation = rotation;
-        c.transform.position = transformer.ToSfm(pos);
-        c.transform.localScale = new Vector3(0.035f, 0.05f, 0.035f);
-        c.name = name + " " + pos;
+        var obj = GameObject.CreatePrimitive(objType);
+        obj.name = name;
+        AddObject(pos, obj);
     }
 
-    void AddPositionRB(string name, GPSPosition pos, Transformer transformer, Quaternion rotation)
+    void AddPositionRB(string name, GPSPosition pos)
     {
-        var c = Instantiate(RedBall);
-        c.transform.rotation = rotation;
-        c.transform.position = transformer.ToSfm(pos);
-        c.transform.localScale = Vector3.one * 0.05f;
-        c.name = name + " " + pos;
+        var obj =  Instantiate(RedBall);
+        obj.name = name;
+        AddObject(pos, obj);
     }
 
-    void Test(Transformer transformer, IEnumerable<GPSPosition> Positions, Quaternion rotation)
+    void AddObject(GPSPosition pos, GameObject obj)
     {
+        obj.transform.parent = gameObject.transform;
+        obj.transform.localRotation = Quaternion.identity;
+        obj.transform.localScale = Vector3.one;
 
-        GameObject c;
+        Models.Add((pos, obj));
+    }
 
-        foreach (var p in Positions)
-        {
-            c = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            c.transform.position = transformer.ToSfm(p);
-            c.transform.localScale = Vector3.one * 0.05f;
-            c.name = p.ToString();
-        }
+    public void AddTestModels()
+    {
+        // foreach (var p in Positions)
+        // {
+        //     var c = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+        //     c.transform.position = transformer.ToSfm(p);
+        //     c.transform.localScale = Vector3.one * 0.05f;
+        //     c.name = p.ToString();
+        // }
 
-        AddPosition("S", 13.21285566, 55.71090721, 102.3, transformer, rotation);
-        AddPosition("O", 13.21270959, 55.71090706, 102.3, transformer, rotation);
-        AddPosition("P", 13.21271005, 55.71095111, 102.3, transformer, rotation);
-        AddPosition("R", 13.21278098, 55.71095192, 102.3, transformer, rotation);
-        AddPosition("Q", 13.21285350, 55.71095194, 102.3, transformer, rotation);
+        AddPosition("S", 13.21285566, 55.71090721, 102.3);
+        AddPosition("O", 13.21270959, 55.71090706, 102.3);
+        AddPosition("P", 13.21271005, 55.71095111, 102.3);
+        AddPosition("R", 13.21278098, 55.71095192, 102.3);
+        AddPosition("Q", 13.21285350, 55.71095194, 102.3);
 
-        AddPosition("Pnt1",  13.21404847, 55.71092960, 103.2 + .4, transformer, rotation);
+        AddPosition("Pnt1",  13.21404847, 55.71092960, 103.2 + .4);
         AddPositionRB("APnt1",
-                 new GPSPosition("sweref_99_13_30", 6176415.2 + .25, 132025.7 - .26, 103.6),
-                 transformer, rotation);
+                 new GPSPosition("sweref_99_13_30", 6176415.2 + .25, 132025.7 - .26, 103.6));
 
-        //AddPosition("Pnt3",  13.21392685, 55.71085484, 103.2 + .4, transformer, rotation);
+        AddPosition("Pnt3",  13.21392685, 55.71085484, 103.2 + .4);
         AddPositionRB("APnt3",
-                new GPSPosition("sweref_99_13_30", 6176406.9 + .25, 132018.1 - .26, 103.6),
-                transformer, rotation);
+                new GPSPosition("sweref_99_13_30", 6176406.9 + .25, 132018.1 - .26, 103.6));
 
-        //AddPosition("Pnt5",  13.21380042, 55.71085481, 103.2 + .4, transformer, rotation);
+        AddPosition("Pnt5",  13.21380042, 55.71085481, 103.2 + .4);
         AddPositionRB("APnt5",
-                new GPSPosition("sweref_99_13_30", 6176406.9 + .24, 132010.1 - .18, 103.6),
-                transformer, rotation);
+                new GPSPosition("sweref_99_13_30", 6176406.9 + .24, 132010.1 - .18, 103.6));
 
-        //AddPosition("Pnt8",  13.21372798, 55.71085486, 103.1 + .4, transformer, rotation);
+        AddPosition("Pnt8",  13.21372798, 55.71085486, 103.1 + .4);
         AddPositionRB("APnt8",
-                new GPSPosition("sweref_99_13_30", 6176407 + .24, 132005.6 - .18, 103.5),
-                transformer, rotation);
+                new GPSPosition("sweref_99_13_30", 6176407 + .24, 132005.6 - .18, 103.5));
 
-        //AddPosition("Pnt11", 13.21386312, 55.71097488, 103.1 + .4, transformer, rotation);
+        AddPosition("Pnt11", 13.21386312, 55.71097488, 103.1 + .4);
         AddPositionRB("APnt11",
-                new GPSPosition("sweref_99_13_30", 6176420.3 + .21, 132014.1 - .17, 103.5),
-                transformer, rotation);
+                new GPSPosition("sweref_99_13_30", 6176420.3 + .21, 132014.1 - .17, 103.5));
 
-        //AddPosition("Pnt13", 13.21367242, 55.71092992, 102.9 + .4, transformer, rotation);
+        AddPosition("Pnt13", 13.21367242, 55.71092992, 102.9 + .4);
         AddPositionRB("APnt13",
-                new GPSPosition("sweref_99_13_30", 6176415.3 + .21, 132002.1- .17, 103.3),
-                transformer, rotation);
+                new GPSPosition("sweref_99_13_30", 6176415.3 + .21, 132002.1- .17, 103.3));
 
-        AddPosition("Pnt14", 13.21351337, 55.71099739, 103.0 + .4, transformer, rotation);
-        AddPosition("Pnt16", 13.21324542, 55.71090776, 102.7 + .4, transformer, rotation);
-        AddPosition("Pnt18", 13.21324485, 55.71093010, 102.7 + .4, transformer, rotation);
-        AddPosition("Pnt20", 13.21313172, 55.71090771, 102.5 + .4, transformer, rotation);
-        AddPosition("Pnt22", 13.21305239, 55.71090753, 102.5 + .4, transformer, rotation);
-        AddPosition("Pnt24", 13.21297380, 55.71090752, 102.5 + .4, transformer, rotation);
-        AddPosition("Pnt26", 13.21312557, 55.71075311, 102.5 + .4, transformer, rotation);
-        AddPosition("Pnt28", 13.21316558, 55.71075306, 102.5 + .4, transformer, rotation);
-        AddPosition("Pnt30", 13.21320524, 55.71075316, 102.6 + .4, transformer, rotation);
+        AddPosition("Pnt14", 13.21351337, 55.71099739, 103.0 + .4);
+        AddPosition("Pnt16", 13.21324542, 55.71090776, 102.7 + .4);
+        AddPosition("Pnt18", 13.21324485, 55.71093010, 102.7 + .4);
+        AddPosition("Pnt20", 13.21313172, 55.71090771, 102.5 + .4);
+        AddPosition("Pnt22", 13.21305239, 55.71090753, 102.5 + .4);
+        AddPosition("Pnt24", 13.21297380, 55.71090752, 102.5 + .4);
+        AddPosition("Pnt26", 13.21312557, 55.71075311, 102.5 + .4);
+        AddPosition("Pnt28", 13.21316558, 55.71075306, 102.5 + .4);
+        AddPosition("Pnt30", 13.21320524, 55.71075316, 102.6 + .4);
 
 
         // for (int i = 1; i < 11; i += 1)
         // {
         //     AddPosition("P" + i,
-        //         new GPSPosition("sweref_99_13_30", 6176417.94631892+i*2.5, 131941.659494839, 102.3),
-        //         transformer, rotation);
+        //         new GPSPosition("sweref_99_13_30", 6176417.94631892+i*2.5, 131941.659494839, 102.3));
         //     AddPosition("R" + i,
-        //         new GPSPosition("sweref_99_13_30", 6176418.01803302+i*2.5, 131946.118340288, 102.3),
-        //         transformer, rotation);
+        //         new GPSPosition("sweref_99_13_30", 6176418.01803302+i*2.5, 131946.118340288, 102.3));
         //     AddPosition("Q" + i,
-        //         new GPSPosition("sweref_99_13_30", 6176418.00138237+i*2.5, 131950.676764551, 102.3),
-        //         transformer, rotation);
+        //         new GPSPosition("sweref_99_13_30", 6176418.00138237+i*2.5, 131950.676764551, 102.3));
         // }
     }
 

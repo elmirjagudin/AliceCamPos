@@ -8,9 +8,9 @@ public struct TimeBase
     public uint Denominator;
 }
 
-public class Chunks
+public class FrameChunks
 {
-    const uint MIN_OVERLAP = 0;                          /* in frames */
+    const uint MIN_OVERLAP = 1;                          /* in frames */
     const int CHUNK_LENGTH = 50;                         /* in frames */
     const uint CHUNK_DURATION = CHUNK_LENGTH / 2 * 1000; /* in miliseconds */
 
