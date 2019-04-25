@@ -73,9 +73,11 @@ public class Cams : MonoBehaviour
         rot180z = Quaternion.Euler(0, 0, 180);
 
         var posFile = PrepVideo.GetPositionsFilePath(VideoFile);
+
+        GNSSTransform.CreateGNSSMarkers(posFile);
+
         FirstFrame = UInt32.MaxValue;
         LastFrame = 0;
-
         foreach (var viewsChunk in AliceSfm.Load(ImagesDir))
         {
             var chunk = InitChunk(viewsChunk, posFile);
@@ -202,6 +204,11 @@ public class Cams : MonoBehaviour
 
         camTrans.localPosition = position;
         camTrans.localRotation = rotation;
+    }
+
+    public void ToggleGNSSMarkers()
+    {
+        GNSSTransform.ToggleGNSSMarkers();
     }
 
     //debug wrapper

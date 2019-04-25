@@ -743,7 +743,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d81b2c58493f55d4a9624f95ca27bb48, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GNSSParent: {fileID: 1889413144}
+  GNSSMarkers: {fileID: 1889413144}
   SFMParent: {fileID: 1774865853}
   GNSSPrefab: {fileID: 2955380289324441029, guid: 173bad54191d7dda2ae1f652abfc5410,
     type: 3}
@@ -1796,12 +1796,12 @@ GameObject:
   m_Component:
   - component: {fileID: 1889413145}
   m_Layer: 0
-  m_Name: GNSS
+  m_Name: GNSSMarkers
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1889413145
 Transform:
   m_ObjectHideFlags: 0

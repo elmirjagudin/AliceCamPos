@@ -72,12 +72,13 @@ public class GnssSfm
         double Latitude;
         double Longitude;
         double Altitude;
+        double RelativeHeight;
         float Pitch;
         float Roll;
         float Yaw;
 
         cp.ReadPose(out TimeStamp,
-                    out Latitude, out Longitude, out Altitude,
+                    out Latitude, out Longitude, out Altitude, out RelativeHeight,
                     out Pitch, out Roll, out Yaw);
         var origin = toSweref(Longitude, Latitude, Altitude);
         yield return GnssToViewPose(origin, origin, TimeStamp);
@@ -87,7 +88,7 @@ public class GnssSfm
             try
             {
                 cp.ReadPose(out TimeStamp,
-                            out Latitude, out Longitude, out Altitude,
+                            out Latitude, out Longitude, out Altitude, out RelativeHeight,
                             out Pitch, out Roll, out Yaw);
             }
             catch (EndOfStreamException)

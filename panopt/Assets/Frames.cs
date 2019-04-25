@@ -58,6 +58,11 @@ public class Frames : MonoBehaviour
         {
             PhotogramMesh.SetActive(!PhotogramMesh.activeSelf);
         }
+
+        if (Input.GetKeyDown("m"))
+        {
+            cams.ToggleGNSSMarkers();
+        }
     }
 
     void ManualTick()

@@ -170,7 +170,7 @@ class Transformer
 
 public class GNSSTransform : MonoBehaviour
 {
-    public GameObject GNSSParent;
+    public GameObject GNSSMarkers;
     public GameObject SFMParent;
     public GameObject GNSSPrefab;
     public GameObject SFMPrefab;
@@ -206,12 +206,28 @@ public class GNSSTransform : MonoBehaviour
 
         var rotation = rotator.Calculate();
 
-        GNSSParent.transform.localScale = Vector3.one * (float)scale;
-        GNSSParent.transform.rotation = rotation;
-
         var transformer = new Transformer(CamsOrigin, GNSSOrigin, (float)scale, rotation);
 
         return (rotation, (float)scale, CamsOrigin, GNSSOrigin);
+    }
+
+    public void ToggleGNSSMarkers()
+    {
+        GNSSMarkers.SetActive(!GNSSMarkers.activeSelf);
+    }
+
+    public void CreateGNSSMarkers(string CaptionsFile)
+    {
+        foreach (var item in GetGNSSCoords(CaptionsFile))
+        {
+            var pos = item.pos;
+            var below = new GPSPosition(pos.Projection, pos.North, pos.East, pos.Altitude - item.RelHeight);
+
+            var obj = Instantiate(RedBall);
+            obj.name = $"{item.ts}: {below}";
+            AddObject(below, obj);
+            obj.transform.parent = GNSSMarkers.transform;
+        }
     }
 
     public void SetTransform(Vector3 position, Quaternion rotation, float scale, GPSPosition GNSSOrigin)
@@ -276,7 +292,7 @@ public class GNSSTransform : MonoBehaviour
 
     void AddPositionRB(string name, GPSPosition pos)
     {
-        var obj =  Instantiate(RedBall);
+        var obj = Instantiate(RedBall);
         obj.name = name;
         AddObject(pos, obj);
     }
@@ -375,6 +391,17 @@ public class GNSSTransform : MonoBehaviour
 
     public static Dictionary<uint, GPSPosition> LoadGNSSCoords(string CaptionsFile)
     {
+        var Positions = new Dictionary<uint, GPSPosition>();
+        foreach (var entry in GetGNSSCoords(CaptionsFile))
+        {
+            Positions[entry.ts] = entry.pos;
+        }
+
+        return Positions;
+    }
+
+    public static IEnumerable<(uint ts, GPSPosition pos, double RelHeight)> GetGNSSCoords(string CaptionsFile)
+    {
         var cp = new CaptionParser(CaptionsFile);
 
         var toSweref = GeodesyProjections.fromWGS84Converter("sweref_99_13_30");
@@ -383,6 +410,7 @@ public class GNSSTransform : MonoBehaviour
         double Latitude;
         double Longitude;
         double Altitude;
+        double RelativeHeight;
         float Pitch;
         float Roll;
         float Yaw;
@@ -394,18 +422,16 @@ public class GNSSTransform : MonoBehaviour
             try
             {
                 cp.ReadPose(out TimeStamp,
-                            out Latitude, out Longitude, out Altitude,
+                            out Latitude, out Longitude, out Altitude, out RelativeHeight,
                             out Pitch, out Roll, out Yaw);
             }
             catch (EndOfStreamException)
             {
-                Log.Msg("done loading captions");
+                /* done loading captions */
                 break;
             }
 
-            Positions.Add(TimeStamp / 1000, toSweref(Longitude, Latitude, Altitude));
+            yield return (TimeStamp / 1000, toSweref(Longitude, Latitude, Altitude), RelativeHeight);
         }
-
-        return Positions;
     }
 }

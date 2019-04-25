@@ -58,6 +58,7 @@ class DJICaptionParser
                              out double Longitude,
                              out double Latitude,
                              out double Altitude,
+                             out double RelativeHeight,
                              out float Pitch,
                              out float Roll,
                              out float Yaw)
@@ -68,8 +69,8 @@ class DJICaptionParser
         Latitude = Utils.ParseDouble(Utils.Get(groups, "lat"));
 
         var home_height = Utils.ParseDouble(Utils.Get(groups, "halt"));
-        var rel_height = Utils.ParseDouble(Utils.Get(groups, "height"));
-        Altitude = home_height + rel_height;
+        RelativeHeight = Utils.ParseDouble(Utils.Get(groups, "height"));
+        Altitude = home_height + RelativeHeight;
         //Altitude = Utils.ParseDouble(Utils.Get(groups, "alt"));
 
         Pitch = Utils.ParseFloat(Utils.Get(groups, "pitch"));
@@ -156,6 +157,7 @@ public class CaptionParser
                          out double Latitude,
                          out double Longitude,
                          out double Altitude,
+                         out double RelativeHeight,
                          out float Pitch,
                          out float Roll,
                          out float Yaw)
@@ -164,7 +166,7 @@ public class CaptionParser
 
         SrtReader.NextCaption(out TimeStamp, out Caption);
 
-        DJICaptionParser.Parse(Caption, out Longitude, out Latitude, out Altitude,
+        DJICaptionParser.Parse(Caption, out Longitude, out Latitude, out Altitude, out RelativeHeight,
                                out Pitch, out Roll, out Yaw);
     }
 }
