@@ -7,6 +7,7 @@ public class UIDispatcher : MonoBehaviour
     public Text VideoLabel;
     public ProgressBar ProgressBar;
     public Frames Frames;
+    public MediaControllers MediaControllers;
 
     void Awake()
     {
@@ -16,6 +17,8 @@ public class UIDispatcher : MonoBehaviour
         SourceVideo.ImportCanceledEvent += HandleImportCanceled;
 
         SourceVideo.VideoOpenedEvent += HandleVideoOpened;
+
+        Frames.VideoLoadedEvent += HandleVideoLoaded;
     }
 
     void SetCurrentVideo(string videoFile)
@@ -57,5 +60,10 @@ public class UIDispatcher : MonoBehaviour
             ProgressBar.Hide();
             SetCurrentVideo("");
         });
+    }
+
+    void HandleVideoLoaded(uint FirstFrame, uint LastFrame)
+    {
+        MediaControllers.Init(FirstFrame, LastFrame);
     }
 }

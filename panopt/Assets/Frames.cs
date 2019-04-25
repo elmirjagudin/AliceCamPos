@@ -4,6 +4,15 @@ using UnityEngine;
 
 public class Frames : MonoBehaviour
 {
+    public delegate void VideoLoaded(uint FirstFrame, uint LastFrame);
+    public static event VideoLoaded VideoLoadedEvent;
+
+    public delegate void PlaybackModeChanged(PlaybackMode NewMode);
+    public static event PlaybackModeChanged PlaybackModeChangedEvent;
+
+    public delegate void FrameChanged(uint FrameNumer);
+    public static event FrameChanged FrameChangedEvent;
+
     public Cams cams;
     public GameObject texRecorder;
     public GameObject PhotogramMesh;
@@ -12,39 +21,61 @@ public class Frames : MonoBehaviour
     uint CurrentFrame;
     uint LastFrame;
 
-    enum TickingMode
+    public enum PlaybackMode
     {
         Idle,
-        Manual,
-        Roll,
-        RecordVideo
+        Step,
+        Play,
+        Record
     }
 
-    TickingMode tickingMode = TickingMode.Idle;
+    PlaybackMode _playbackMode = PlaybackMode.Idle;
+    PlaybackMode playbackMode
+    {
+        get { return _playbackMode; }
+        set
+        {
+            _playbackMode = value;
+            PlaybackModeChangedEvent?.Invoke(_playbackMode);
+        }
+    }
 
     public void OpenVideo(string videoFile)
     {
         cams.Init(videoFile, out FirstFrame, out LastFrame);
         cams.AddTestModels();
+
+        VideoLoadedEvent?.Invoke(FirstFrame, LastFrame);
+
         GotoFrame(FirstFrame);
 
-        tickingMode = TickingMode.Manual;
+        playbackMode = PlaybackMode.Step;
+    }
+
+    public void Play()
+    {
+        playbackMode = PlaybackMode.Play;
+    }
+
+    public void Pause()
+    {
+        playbackMode = PlaybackMode.Step;
     }
 
     void Update()
     {
-        switch (tickingMode)
+        switch (playbackMode)
         {
-            case TickingMode.Idle:
+            case PlaybackMode.Idle:
                 /* nop */
                 break;
-            case TickingMode.Manual:
-                ManualTick();
+            case PlaybackMode.Step:
+                StepTick();
                 break;
-            case TickingMode.Roll:
-                RollTick();
+            case PlaybackMode.Play:
+                PlayTick();
                 break;
-            case TickingMode.RecordVideo:
+            case PlaybackMode.Record:
                 RecordVideoTick();
                 break;
         }
@@ -65,11 +96,11 @@ public class Frames : MonoBehaviour
         }
     }
 
-    void ManualTick()
+    void StepTick()
     {
         if (Input.GetKeyDown("space"))
         {
-            tickingMode = TickingMode.Roll;
+            playbackMode = PlaybackMode.Play;
             return;
         }
 
@@ -79,11 +110,11 @@ public class Frames : MonoBehaviour
         }
     }
 
-    void RollTick()
+    void PlayTick()
     {
         if (Input.GetKeyDown("space"))
         {
-            tickingMode = TickingMode.Manual;
+            playbackMode = PlaybackMode.Step;
             return;
         }
 
@@ -92,7 +123,7 @@ public class Frames : MonoBehaviour
 
     void StartRecording()
     {
-        tickingMode = TickingMode.RecordVideo;
+        playbackMode = PlaybackMode.Record;
         GotoFrame(FirstFrame);
         texRecorder.SetActive(true);
     }
@@ -102,7 +133,7 @@ public class Frames : MonoBehaviour
         if (CurrentFrame + 1 > LastFrame)
         {
             /* at last frame, we are done recording */
-            tickingMode = TickingMode.Manual;
+            playbackMode = PlaybackMode.Step;
             texRecorder.SetActive(false);
             return;
         }
@@ -110,13 +141,14 @@ public class Frames : MonoBehaviour
         GotoNextFrame();
     }
 
-    void GotoFrame(uint frame)
+    public void GotoFrame(uint frame)
     {
         CurrentFrame = frame;
         cams.GotoFrame(CurrentFrame);
+        FrameChangedEvent?.Invoke(CurrentFrame);
     }
 
-    void GotoNextFrame()
+    public void GotoNextFrame()
     {
         CurrentFrame += 1;
 
@@ -126,6 +158,19 @@ public class Frames : MonoBehaviour
             CurrentFrame = FirstFrame;
         }
 
-        cams.GotoFrame(CurrentFrame);
+        GotoFrame(CurrentFrame);
+    }
+
+    public void GotoPreviousFrame()
+    {
+        CurrentFrame -= 1;
+
+        /* wrap around */
+        if (CurrentFrame <= 0)
+        {
+            CurrentFrame = LastFrame;
+        }
+
+        GotoFrame(CurrentFrame);
     }
 }
