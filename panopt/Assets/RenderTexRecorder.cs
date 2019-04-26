@@ -9,13 +9,20 @@ public class RenderTexRecorder : MonoBehaviour
     Texture2D cpuTex;
     Recorder recorder;
 
-    void OnEnable()
+    public void StartRecording(string VideoFile)
     {
         cpuTex = new Texture2D(renderTexture.width, renderTexture.height, TextureFormat.RGB24, false);
         recorder = new Recorder(
-            "/home/boris/panopt.mov",
+            VideoFile,
             renderTexture.width, renderTexture.height,
             1, 30000);
+
+        gameObject.SetActive(true);
+    }
+
+    public void StopRecording()
+    {
+        gameObject.SetActive(false);
     }
 
     static public Texture2D GetRTPixels(Texture2D tex, RenderTexture rt)

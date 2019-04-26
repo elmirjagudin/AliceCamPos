@@ -8,8 +8,11 @@ class PanoptJson
 {
     const string FILE = "panopt.json";
 
-    /* empty string mean no 'last used directory' known */
-    public string LastUsedDirectory = "";
+    /*
+     * empty strings means directory is not known
+     */
+    public string LastSourceDirectory = "";
+    public string LastRecordingFile = "";
 
     static string GetFilePath()
     {
@@ -56,16 +59,32 @@ public class Persisted
         }
     }
 
-    public static string LastUsedDirectory
+    /* the directory where we last picked source video */
+    public static string LastSourceDirectory
     {
         get
         {
-            return json.LastUsedDirectory;
+            return json.LastSourceDirectory;
         }
         set
         {
-            json.LastUsedDirectory = value;
+            json.LastSourceDirectory = value;
             json.Save();
         }
     }
+
+    /* the filename we lastly used to record to */
+    public static string LastRecordingFile
+    {
+        get
+        {
+            return json.LastRecordingFile;
+        }
+        set
+        {
+            json.LastRecordingFile = value;
+            json.Save();
+        }
+    }
+
 }

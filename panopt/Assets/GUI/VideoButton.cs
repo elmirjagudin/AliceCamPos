@@ -8,7 +8,7 @@ public class VideoButton : MonoBehaviour
     string GetFilePath()
     {
         var paths = StandaloneFileBrowser.OpenFilePanel(
-            "Pick Video...", Persisted.LastUsedDirectory, "mov", false);
+            "Pick Video...", Persisted.LastSourceDirectory, "mov", false);
 
         if (paths.Length == 0)
         {
@@ -33,7 +33,7 @@ public class VideoButton : MonoBehaviour
             return;
         }
 
-        Persisted.LastUsedDirectory = Path.GetDirectoryName(path);
+        Persisted.LastSourceDirectory = Path.GetDirectoryName(path);
         SourceVideo.Open(path);
     }
 }

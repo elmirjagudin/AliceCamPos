@@ -14,7 +14,7 @@ public class Frames : MonoBehaviour
     public static event FrameChanged FrameChangedEvent;
 
     public Cams cams;
-    public GameObject texRecorder;
+    public RenderTexRecorder texRecorder;
     public GameObject PhotogramMesh;
 
     uint FirstFrame;
@@ -23,13 +23,12 @@ public class Frames : MonoBehaviour
 
     public enum PlaybackMode
     {
-        Idle,
         Step,
         Play,
         Record
     }
 
-    PlaybackMode _playbackMode = PlaybackMode.Idle;
+    PlaybackMode _playbackMode = PlaybackMode.Step;
     PlaybackMode playbackMode
     {
         get { return _playbackMode; }
@@ -66,26 +65,18 @@ public class Frames : MonoBehaviour
     {
         switch (playbackMode)
         {
-            case PlaybackMode.Idle:
+            case PlaybackMode.Step:
                 /* nop */
                 break;
-            case PlaybackMode.Step:
-                StepTick();
-                break;
             case PlaybackMode.Play:
-                PlayTick();
+                GotoNextFrame();
                 break;
             case PlaybackMode.Record:
                 RecordVideoTick();
                 break;
         }
 
-        if (Input.GetKeyDown("r"))
-        {
-            StartRecording();
-        }
-
-        if (Input.GetKeyDown("t"))
+        if (Input.GetKeyDown("t") && PhotogramMesh != null)
         {
             PhotogramMesh.SetActive(!PhotogramMesh.activeSelf);
         }
@@ -96,36 +87,11 @@ public class Frames : MonoBehaviour
         }
     }
 
-    void StepTick()
-    {
-        if (Input.GetKeyDown("space"))
-        {
-            playbackMode = PlaybackMode.Play;
-            return;
-        }
-
-        if (Input.GetKeyDown("n"))
-        {
-            GotoNextFrame();
-        }
-    }
-
-    void PlayTick()
-    {
-        if (Input.GetKeyDown("space"))
-        {
-            playbackMode = PlaybackMode.Step;
-            return;
-        }
-
-        GotoNextFrame();
-    }
-
-    void StartRecording()
+    public void StartRecording(string VideoFile)
     {
         playbackMode = PlaybackMode.Record;
         GotoFrame(FirstFrame);
-        texRecorder.SetActive(true);
+        texRecorder.StartRecording(VideoFile);
     }
 
     void RecordVideoTick()
@@ -134,7 +100,7 @@ public class Frames : MonoBehaviour
         {
             /* at last frame, we are done recording */
             playbackMode = PlaybackMode.Step;
-            texRecorder.SetActive(false);
+            texRecorder.StopRecording();
             return;
         }
 
@@ -166,7 +132,7 @@ public class Frames : MonoBehaviour
         CurrentFrame -= 1;
 
         /* wrap around */
-        if (CurrentFrame <= 0)
+        if (CurrentFrame <= FirstFrame)
         {
             CurrentFrame = LastFrame;
         }
