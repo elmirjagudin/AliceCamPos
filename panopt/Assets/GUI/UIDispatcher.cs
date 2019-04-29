@@ -1,13 +1,24 @@
 using System.IO;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class UIDispatcher : MonoBehaviour
 {
+    static Dictionary<LoginMenu.Error, (string  title, string message)> LoginErrors =
+        new Dictionary<LoginMenu.Error, (string  title, string message)>
+    {
+        { LoginMenu.Error.Authentication, ("authentication failed", "invalid credentials") },
+        { LoginMenu.Error.Connection, ("connection error", "check your internet connection") }
+    };
+
+    public Button ShowMenu;
     public Text VideoLabel;
     public ProgressBar ProgressBar;
     public Frames Frames;
     public MediaControllers MediaControllers;
+    public ErrorMessage ErrorMessage;
+
 
     void Awake()
     {
@@ -19,6 +30,9 @@ public class UIDispatcher : MonoBehaviour
         SourceVideo.VideoOpenedEvent += HandleVideoOpened;
 
         Frames.VideoLoadedEvent += HandleVideoLoaded;
+
+        LoginMenu.LoginErrorEvent += HandleLoginError;
+        LoginMenu.LoggedInEvent += HandleLoggedInEvent;
     }
 
     void SetCurrentVideo(string videoFile)
@@ -65,5 +79,16 @@ public class UIDispatcher : MonoBehaviour
     void HandleVideoLoaded(uint FirstFrame, uint LastFrame)
     {
         MediaControllers.Init(FirstFrame, LastFrame);
+    }
+
+    void HandleLoginError(LoginMenu.Error Error)
+    {
+        var ErrMsg = LoginErrors[Error];
+        MainThreadRunner.Run(() => ErrorMessage.Show(ErrMsg.title, ErrMsg.message));
+    }
+
+    void HandleLoggedInEvent(CloudAPI.Model[] models)
+    {
+        ShowMenu.gameObject.SetActive(true);
     }
 }

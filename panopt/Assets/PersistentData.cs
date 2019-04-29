@@ -3,7 +3,6 @@ using UnityEngine;
 using Newtonsoft.Json;
 using Hagring;
 
-#pragma warning disable 0649
 class PanoptJson
 {
     const string FILE = "panopt.json";
@@ -13,6 +12,9 @@ class PanoptJson
      */
     public string LastSourceDirectory = "";
     public string LastRecordingFile = "";
+
+    public string Username = null;
+    public string Password = null;
 
     static string GetFilePath()
     {
@@ -33,8 +35,10 @@ class PanoptJson
         return JsonConvert.DeserializeObject<PanoptJson>(jsonText);
     }
 
-    public void Save()
+    public void Set(string PropertyName, string Vaue)
     {
+        GetType().GetField(PropertyName).SetValue(this, Vaue);
+        /* make sure we write new value to the disk */
         using (var fileWriter = Utils.CreateFileWriter(GetFilePath()))
         {
             var jsonText = JsonConvert.SerializeObject(this, Formatting.Indented);
@@ -42,7 +46,6 @@ class PanoptJson
         }
     }
 }
-#pragma warning restore
 
 public class Persisted
 {
@@ -62,29 +65,27 @@ public class Persisted
     /* the directory where we last picked source video */
     public static string LastSourceDirectory
     {
-        get
-        {
-            return json.LastSourceDirectory;
-        }
-        set
-        {
-            json.LastSourceDirectory = value;
-            json.Save();
-        }
+        get { return json.LastSourceDirectory; }
+        set { json.Set("LastSourceDirectory", value); }
     }
 
     /* the filename we lastly used to record to */
     public static string LastRecordingFile
     {
-        get
-        {
-            return json.LastRecordingFile;
-        }
-        set
-        {
-            json.LastRecordingFile = value;
-            json.Save();
-        }
+        get { return json.LastRecordingFile; }
+        set { json.Set("LastRecordingFile", value); }
+    }
+
+    public static string Username
+    {
+        get { return json.Username; }
+        set { json.Set("Username", value); }
+    }
+
+    public static string Password
+    {
+        get { return json.Password; }
+        set { json.Set("Password", value); }
     }
 
 }

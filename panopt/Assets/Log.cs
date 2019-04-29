@@ -15,6 +15,28 @@ public class Log
         Debug.LogFormat(format, args);
         Console.Error.WriteLine(format, args);
     }
+
+    public static void Wrn(object msg)
+    {
+        Wrn("{0}", msg);
+    }
+
+    public static void Wrn(string format, params object[] args)
+    {
+        Debug.LogWarningFormat(format, args);
+        Console.Error.WriteLine("WARNING:" + format, args);
+    }
+
+    public static void Err(object msg)
+    {
+        Err("{0}", msg);
+    }
+
+    public static void Err(string format, params object[] args)
+    {
+        Debug.LogErrorFormat(format, args);
+        Console.Error.WriteLine("ERROR:" + format, args);
+    }
 }
 
 ///
@@ -33,4 +55,25 @@ public class L
     {
         Log.Msg(format, args);
     }
+
+    public static void W(object msg)
+    {
+        Log.Wrn("{0}", msg);
+    }
+
+    public static void W(string format, params object[] args)
+    {
+        Log.Wrn(format, args);
+    }
+
+    public static void E(object msg)
+    {
+        Log.Err("{0}", msg);
+    }
+
+    public static void E(string format, params object[] args)
+    {
+        Log.Err(format, args);
+    }
+
 }
