@@ -6,6 +6,9 @@ using Hagring;
 
 public class MeshroomCompute
 {
+    /* should we save each chunk's meshroom cache directory ? */
+    const bool SAVE_MESHROOM_CACHE = false;
+
     const int POLL_FREQ = 1300; /* miliseconds */
     public delegate void ComputeProgress(int chunkNum, float done);
 
@@ -49,15 +52,13 @@ public class MeshroomCompute
         File.Copy(camsSfmFile, destFile, true);
     }
 
-    static int hackCntr = 0;
-
-    static void RemoveCacheDir(string ImagesDir)
+    static void RemoveCacheDir(string ImagesDir, int chunkNum)
     {
         var cacheDir = Meshroom.GetCacheDir(ImagesDir);
-        if (Directory.Exists(cacheDir))
+        if (SAVE_MESHROOM_CACHE && Directory.Exists(cacheDir))
         {
-            var destDir = Path.Combine(ImagesDir, $"MeshroomCache{hackCntr++}");
-L.M($"'{cacheDir}' -> '{destDir}'");
+            var destDir = Path.Combine(ImagesDir, $"MeshroomCache{chunkNum}");
+            Log.Msg($"saving '{cacheDir}' to '{destDir}'");
             Directory.Move(cacheDir, destDir);
         }
         Utils.RemoveDir(cacheDir);
@@ -67,11 +68,12 @@ L.M($"'{cacheDir}' -> '{destDir}'");
         string MeshroomComputeBin,
         string ImagesDir,
         string graph,
+        int chunkNum,
         ChunkProgress ChunkProgressCB,
         AutoResetEvent AbortEvent)
     {
         /* remove previous cache dir, if it exists */
-        RemoveCacheDir(ImagesDir);
+        RemoveCacheDir(ImagesDir, chunkNum);
 
         /* start meshroom compute process */
         var runner = new ProcRunner(MeshroomComputeBin, graph);
@@ -103,13 +105,13 @@ L.M($"'{cacheDir}' -> '{destDir}'");
         int chunkNum = 0;
         foreach (var graph in graphs)
         {
-            RunMeshroomCompute(MeshroomComputeBin, ImagesDir, graph,
+            RunMeshroomCompute(MeshroomComputeBin, ImagesDir, graph, chunkNum,
                                (done) => ComputeProgressCB(chunkNum, done),
                                AbortEvent);
             chunkNum += 1;
         }
 
         /* clean-up last meshroom cache directory */
-        RemoveCacheDir(ImagesDir);
+        RemoveCacheDir(ImagesDir, chunkNum);
     }
 }
