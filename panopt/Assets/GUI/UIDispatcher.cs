@@ -12,7 +12,7 @@ public class UIDispatcher : MonoBehaviour
         { LoginMenu.Error.Connection, ("connection error", "check your internet connection") }
     };
 
-    public Button ShowMenu;
+    public GameObject ShowMenu;
     public Text VideoLabel;
     public ProgressBar ProgressBar;
     public Frames Frames;
@@ -89,6 +89,6 @@ public class UIDispatcher : MonoBehaviour
 
     void HandleLoggedInEvent(CloudAPI.Model[] models)
     {
-        ShowMenu.gameObject.SetActive(true);
+        ShowMenu.SetActive(true);
     }
 }
