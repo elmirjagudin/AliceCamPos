@@ -164,6 +164,7 @@ public class CloudAPI
          */
         public string folderId;
         public string model;
+        public string name;
         public Position defaultPosition;
     }
 

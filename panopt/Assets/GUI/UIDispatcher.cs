@@ -12,7 +12,9 @@ public class UIDispatcher : MonoBehaviour
         { LoginMenu.Error.Connection, ("connection error", "check your internet connection") }
     };
 
-    public GameObject ShowMenu;
+    public GameObject ShowMainMenu;
+    public GameObject ShowModelsMenu;
+    public GameObject ModelsMenu;
     public Text VideoLabel;
     public ProgressBar ProgressBar;
     public Frames Frames;
@@ -44,6 +46,8 @@ public class UIDispatcher : MonoBehaviour
     {
         SetCurrentVideo(videoFile);
         Frames.OpenVideo(videoFile);
+        ShowModelsMenu.SetActive(true);
+        ModelsMenu.SetActive(true);
     }
 
     void HandleImportStarted(string videoFile, SourceVideo.CancelImport CancelImport)
@@ -87,8 +91,8 @@ public class UIDispatcher : MonoBehaviour
         MainThreadRunner.Run(() => ErrorMessage.Show(ErrMsg.title, ErrMsg.message));
     }
 
-    void HandleLoggedInEvent(CloudAPI.Model[] models)
+    void HandleLoggedInEvent(CloudAPI.Model[] _)
     {
-        ShowMenu.SetActive(true);
+        ShowMainMenu.SetActive(true);
     }
 }
