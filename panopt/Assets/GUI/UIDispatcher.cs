@@ -15,15 +15,20 @@ public class UIDispatcher : MonoBehaviour
     public GameObject ShowMainMenu;
     public GameObject ShowModelsMenu;
     public GameObject ModelsMenu;
+    public LoginMenu LoginMenu;
     public Text VideoLabel;
     public ProgressBar ProgressBar;
     public Frames Frames;
     public MediaControllers MediaControllers;
     public ErrorMessage ErrorMessage;
 
-
     void Awake()
     {
+        ModelAssets.StartedDownloadingEvent += HandleAssetsDownloadStarted;
+        ModelAssets.AssetDownloadedEvent += HandleAssetsDownloaded;
+        ModelAssets.FinishedDownloadingEvent += HandleFinishedDownloading;
+        ModelAssets.AbortedDownloadingEvent += HandleAssetsDownloadAborted;
+
         SourceVideo.ImportStartedEvent += HandleImportStarted;
         SourceVideo.ImportProgressEvent += UpdateProgressBar;
         SourceVideo.ImportFinishedEvent += HideProgressBar;
@@ -58,7 +63,36 @@ public class UIDispatcher : MonoBehaviour
     void ShowImportUI(string videoFile, SourceVideo.CancelImport CancelImport)
     {
         SetCurrentVideo(videoFile);
-        ProgressBar.Show(() => CancelImport());
+        ProgressBar.Show("importing", () => CancelImport());
+    }
+
+    string GetDownloadingProgress(int Downloaded, int AssetsCount)
+    {
+        return $"downloading models {Downloaded}/{AssetsCount}";
+    }
+
+    void HandleAssetsDownloadStarted(int AssetsCount)
+    {
+        if (AssetsCount == 0)
+        {
+            /*
+             * don't show progress bar if no assets
+             * will be downloaded
+             */
+            return;
+        }
+
+        MainThreadRunner.Run(() =>
+            ProgressBar.Show(GetDownloadingProgress(1, AssetsCount),
+                             ModelAssets.AbortDownloading));
+    }
+
+    void HandleAssetsDownloaded(int Downloaded, int AssetsCount)
+    {
+        var progress = (float)Downloaded/(float)AssetsCount;
+
+        MainThreadRunner.Run(() =>
+            ProgressBar.SetProgress(GetDownloadingProgress(Downloaded, AssetsCount), progress));
     }
 
     void UpdateProgressBar(string stepName, float done)
@@ -80,6 +114,24 @@ public class UIDispatcher : MonoBehaviour
         });
     }
 
+    void HandleFinishedDownloading()
+    {
+        MainThreadRunner.Run(delegate ()
+        {
+            ProgressBar.Hide();
+            ShowMainMenu.SetActive(true);
+        });
+    }
+
+    void HandleAssetsDownloadAborted()
+    {
+        MainThreadRunner.Run(delegate ()
+        {
+            ProgressBar.Hide();
+            LoginMenu.gameObject.SetActive(true);
+        });
+    }
+
     void HandleVideoLoaded(uint FirstFrame, uint LastFrame)
     {
         MediaControllers.Init(FirstFrame, LastFrame);
@@ -91,8 +143,8 @@ public class UIDispatcher : MonoBehaviour
         MainThreadRunner.Run(() => ErrorMessage.Show(ErrMsg.title, ErrMsg.message));
     }
 
-    void HandleLoggedInEvent(CloudAPI.Model[] _)
+    void HandleLoggedInEvent(CloudAPI.Model[] models)
     {
-        ShowMainMenu.SetActive(true);
+        ModelAssets.Download(models);
     }
 }

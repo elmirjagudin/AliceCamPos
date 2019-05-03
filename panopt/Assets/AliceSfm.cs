@@ -4,6 +4,9 @@ using Newtonsoft.Json;
 using System.Collections.Generic;
 using System;
 
+namespace Brab.Meshroom
+{
+
 /*
  * disable warning "Field `XXX' is never assigned to" for
  * our JSON deserialization object fields
@@ -128,4 +131,5 @@ public class AliceSfm : MonoBehaviour
             yield return (viewName, t.center, t.rotation);
         }
     }
+}
 }

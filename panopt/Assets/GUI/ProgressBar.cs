@@ -43,9 +43,10 @@ public class ProgressBar : MonoBehaviour
         CancelCB();
     }
 
-    public void Show(Cancel CancelCB)
+    public void Show(string stepName, Cancel CancelCB)
     {
         this.CancelCB = CancelCB;
+        SetProgress(stepName, 0);
         gameObject.SetActive(true);
     }
 

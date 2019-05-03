@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Hagring;
 using Hagring.DJI;
 using Newtonsoft.Json;
+using Brab.Meshroom;
 
 public class GnssSfm
 {

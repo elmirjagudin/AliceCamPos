@@ -16,14 +16,9 @@ class PanoptJson
     public string Username = null;
     public string Password = null;
 
-    static string GetFilePath()
-    {
-        return Path.Combine(Application.persistentDataPath, FILE);
-    }
-
     public static PanoptJson Load()
     {
-        var filePath = GetFilePath();
+        var filePath = AppPaths.PersistedDataFile;
         if (!File.Exists(filePath))
         {
             /* no persisted values found, use defaults */
@@ -39,7 +34,7 @@ class PanoptJson
     {
         GetType().GetField(PropertyName).SetValue(this, Vaue);
         /* make sure we write new value to the disk */
-        using (var fileWriter = Utils.CreateFileWriter(GetFilePath()))
+        using (var fileWriter = Utils.CreateFileWriter(AppPaths.PersistedDataFile))
         {
             var jsonText = JsonConvert.SerializeObject(this, Formatting.Indented);
             fileWriter.Write(jsonText);

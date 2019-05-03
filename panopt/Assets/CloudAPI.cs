@@ -157,14 +157,10 @@ public class CloudAPI
 
     public class Model
     {
-        /*
-         * don't include all fields as
-         * we are only interested a subset of all
-         * provide fields
-         */
         public string folderId;
         public string model;
         public string name;
+        public string importStatus;
         public Position defaultPosition;
     }
 

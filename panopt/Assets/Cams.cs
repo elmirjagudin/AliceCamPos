@@ -6,6 +6,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using Hagring;
 using Brab;
+using Brab.Meshroom;
 
 class Chunk
 {
