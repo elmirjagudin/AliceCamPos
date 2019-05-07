@@ -3,34 +3,12 @@ using UnityEngine.UI;
 
 public class ProgressBar : MonoBehaviour
 {
+    public Button CancelButton;
+    public Text stepLabel;
+    public Image progressBar;
+
     public delegate void Cancel();
-
     Cancel CancelCB = null;
-
-    Text _stepLabel = null;
-    Text stepLabel
-    {
-        get
-        {
-            if (_stepLabel == null)
-            {
-                _stepLabel = gameObject.GetComponentInChildren<Text>();
-            }
-            return _stepLabel;
-        }
-    }
-    Image _progressBar;
-    Image progressBar
-    {
-        get
-        {
-            if (_progressBar == null)
-            {
-                _progressBar = gameObject.GetComponentInChildren<Image>();
-            }
-            return _progressBar;
-        }
-    }
 
     public void CancelClicked()
     {
@@ -43,11 +21,22 @@ public class ProgressBar : MonoBehaviour
         CancelCB();
     }
 
-    public void Show(string stepName, Cancel CancelCB)
+    public void Show(string stepName, Cancel CancelCB = null)
     {
         this.CancelCB = CancelCB;
+
+        /* only show cancel button if cancel callback is provided */
+        CancelButton.gameObject.SetActive(CancelCB != null);
+
         SetProgress(stepName, 0);
         gameObject.SetActive(true);
+    }
+
+    public void SetProgress(string caption, int completed, int total)
+    {
+        var msg = $"{caption} {completed}/{total}";
+        var done = (float)completed/(float)total;
+        SetProgress(msg, done);
     }
 
     public void SetProgress(string stepName, float done)

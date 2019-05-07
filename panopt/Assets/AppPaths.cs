@@ -7,6 +7,11 @@ public class AppPaths : MonoBehaviour
      // TODO: use proper version
     public const string MODEL_ASSET_VERSION = "2017.4.4f1";
 
+    /*
+     * 'cache' path to streaming assets, to that can
+     * access it from non-main thread
+     */
+    public static string StreamingAssetsDir { get; private set; }
     public static string ModelAssetsDir { get; private set; }
     public static string PersistedDataFile { get; private set; }
 
@@ -14,6 +19,7 @@ public class AppPaths : MonoBehaviour
     {
         var DataDirsRoot = Application.persistentDataPath;
 
+        StreamingAssetsDir = Path.Combine(Application.dataPath, "StreamingAssets/");
         ModelAssetsDir = Path.Combine(DataDirsRoot, "assets", MODEL_ASSET_VERSION);
         PersistedDataFile = Path.Combine(DataDirsRoot, "panopt.json");
     }

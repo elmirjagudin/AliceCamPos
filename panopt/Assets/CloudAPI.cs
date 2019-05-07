@@ -162,6 +162,11 @@ public class CloudAPI
         public string name;
         public string importStatus;
         public Position defaultPosition;
+
+        public override string ToString()
+        {
+            return $"{name}({model})";
+        }
     }
 
     public class ModelsResponse

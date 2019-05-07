@@ -15,6 +15,7 @@ public class UIDispatcher : MonoBehaviour
     public GameObject ShowMainMenu;
     public GameObject ShowModelsMenu;
     public GameObject ModelsMenu;
+    public Models Models;
     public LoginMenu LoginMenu;
     public Text VideoLabel;
     public ProgressBar ProgressBar;
@@ -28,6 +29,10 @@ public class UIDispatcher : MonoBehaviour
         ModelAssets.AssetDownloadedEvent += HandleAssetsDownloaded;
         ModelAssets.FinishedDownloadingEvent += HandleFinishedDownloading;
         ModelAssets.AbortedDownloadingEvent += HandleAssetsDownloadAborted;
+
+        Models.StartedLoadingPrefabsEvent += HandleStartedLoadingPrefabs;
+        Models.PrefabLoadedEvent += HandlePrefabLoaded;
+        Models.FinishedLoadingPrefabsEvent += HandleFinishedLoadingPrefabs;
 
         SourceVideo.ImportStartedEvent += HandleImportStarted;
         SourceVideo.ImportProgressEvent += UpdateProgressBar;
@@ -50,9 +55,30 @@ public class UIDispatcher : MonoBehaviour
     void HandleVideoOpened(string videoFile)
     {
         SetCurrentVideo(videoFile);
-        Frames.OpenVideo(videoFile);
-        ShowModelsMenu.SetActive(true);
-        ModelsMenu.SetActive(true);
+        Models.Load();
+    }
+
+    void HandlePrefabLoaded(int done, int total)
+    {
+        MainThreadRunner.Run(() =>
+            ProgressBar.SetProgress("loading models", done, total));
+    }
+
+    void HandleStartedLoadingPrefabs()
+    {
+        MainThreadRunner.Run(() =>
+            ProgressBar.Show("loading models", null));
+    }
+
+    void HandleFinishedLoadingPrefabs()
+    {
+        MainThreadRunner.Run(delegate()
+        {
+            ProgressBar.Hide();
+            Frames.OpenVideo();
+            ShowModelsMenu.SetActive(true);
+            ModelsMenu.SetActive(true);
+        });
     }
 
     void HandleImportStarted(string videoFile, SourceVideo.CancelImport CancelImport)
@@ -145,6 +171,6 @@ public class UIDispatcher : MonoBehaviour
 
     void HandleLoggedInEvent(CloudAPI.Model[] models)
     {
-        ModelAssets.Download(models);
+        Models.Init(models);
     }
 }

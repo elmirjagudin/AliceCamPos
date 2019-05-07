@@ -75,6 +75,7 @@ public class Cams : MonoBehaviour
 
         var posFile = PrepVideo.GetPositionsFilePath(VideoFile);
 
+        GNSSTransform.InitModels();
         GNSSTransform.CreateGNSSMarkers(posFile);
 
         FirstFrame = UInt32.MaxValue;

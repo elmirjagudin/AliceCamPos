@@ -170,13 +170,15 @@ class Transformer
 
 public class GNSSTransform : MonoBehaviour
 {
+    public Models Models;
     public GameObject GNSSMarkers;
     public GameObject SFMParent;
     public GameObject GNSSPrefab;
     public GameObject SFMPrefab;
     public GameObject RedBall;
 
-    List<(GPSPosition pos, GameObject obj)> Models = new List<(GPSPosition pos, GameObject obj)>();
+    List<(GPSPosition pos, GameObject obj)> ActiveModels =
+        new List<(GPSPosition pos, GameObject obj)>();
 
     public
         (Quaternion rotation, float scale, Vector3 offset, GPSPosition GNSSOrigin) CalcTransform(
@@ -211,6 +213,16 @@ public class GNSSTransform : MonoBehaviour
         return (rotation, (float)scale, CamsOrigin, GNSSOrigin);
     }
 
+
+    public void InitModels()
+    {
+        foreach (var i in Models.Prefabs)
+        {
+            AddObject(i.pos, Instantiate(i.prefab));
+        }
+    }
+
+
     public void ToggleGNSSMarkers()
     {
         GNSSMarkers.SetActive(!GNSSMarkers.activeSelf);
@@ -236,7 +248,7 @@ public class GNSSTransform : MonoBehaviour
         gameObject.transform.rotation = rotation;
         gameObject.transform.localScale = Vector3.one * scale;
 
-        foreach (var op in Models)
+        foreach (var op in ActiveModels)
         {
             var obj = op.obj;
             var pos = op.pos;
@@ -303,7 +315,7 @@ public class GNSSTransform : MonoBehaviour
         obj.transform.localRotation = Quaternion.identity;
         obj.transform.localScale = Vector3.one;
 
-        Models.Add((pos, obj));
+        ActiveModels.Add((pos, obj));
     }
 
     public void AddTestModels()

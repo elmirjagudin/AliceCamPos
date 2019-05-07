@@ -39,9 +39,9 @@ public class Frames : MonoBehaviour
         }
     }
 
-    public void OpenVideo(string videoFile)
+    public void OpenVideo()
     {
-        cams.Init(videoFile, out FirstFrame, out LastFrame);
+        cams.Init(SourceVideo.VideoFile, out FirstFrame, out LastFrame);
         cams.AddTestModels();
 
         VideoLoadedEvent?.Invoke(FirstFrame, LastFrame);

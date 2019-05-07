@@ -1,6 +1,41 @@
 using System.IO;
+using System.Threading;
 using System.Collections.Generic;
+using UnityEngine;
 using Hagring;
+
+class AssetLoader
+{
+    string AssetFile;
+    GameObject Asset;
+
+    AutoResetEvent AssetLoaded = new AutoResetEvent(false);
+
+    public AssetLoader(string AssetFile)
+    {
+        this.AssetFile = AssetFile;
+    }
+
+    void LoadAsset()
+    {
+        var assBundle = AssetBundle.LoadFromFile(AssetFile);
+        Asset = assBundle.LoadAsset<GameObject>("ifc");
+        assBundle.Unload(false);
+
+        /* signal waiting thread that load is complete */
+        AssetLoaded.Set();
+    }
+
+    public GameObject Load()
+    {
+        /* shedule asset loading on main thread */
+        MainThreadRunner.Run(LoadAsset);
+
+        /* block until it's done */
+        AssetLoaded.WaitOne();
+        return Asset;
+    }
+}
 
 public class ModelAssets
 {
@@ -42,7 +77,7 @@ public class ModelAssets
                 continue;
             }
 
-            if (AssetAlreadyDownloaded(AppPaths.ModelAssetsDir, model.model))
+            if (AssetAlreadyDownloaded(model.model))
             {
                 continue;
             }
@@ -53,9 +88,9 @@ public class ModelAssets
         return done;
     }
 
-    static bool AssetAlreadyDownloaded(string AssetsDirectory, string AssetID)
+    static bool AssetAlreadyDownloaded(string AssetID)
     {
-        return File.Exists(GetAssetFileName(AssetsDirectory, AssetID));
+        return File.Exists(GetAssetFileName(AssetID));
     }
 
     static void DownloadAssets(string AssetsDirectory, CloudAPI.Model[] models)
@@ -77,7 +112,7 @@ public class ModelAssets
                 return;
             }
 
-            var assetFile = GetAssetFileName(AssetsDirectory, model.model);
+            var assetFile = GetAssetFileName(model.model);
             DownloadAsset(AssetsDirectory, model.model);
             AssetDownloadedEvent?.Invoke(cntr++, AssetsCount);
             System.Threading.Thread.Sleep(1299);
@@ -86,9 +121,15 @@ public class ModelAssets
         FinishedDownloadingEvent?.Invoke();
     }
 
-    static string GetAssetFileName(string AssetsDirectory, string modelID)
+    static string GetAssetFileName(string modelID)
     {
-        return Path.Combine(AssetsDirectory, "Asset_" + modelID);
+        return Path.Combine(AppPaths.ModelAssetsDir, "Asset_" + modelID);
+    }
+
+    public static GameObject LoadAsset(string assetID)
+    {
+        var loader = new AssetLoader(GetAssetFileName(assetID));
+        return loader.Load();
     }
 
     ///
@@ -115,7 +156,7 @@ public class ModelAssets
         var assetsInUse = new HashSet<string>();
         foreach (var model in models)
         {
-            var fname = GetAssetFileName(AssetsDirectory, model.model);
+            var fname = GetAssetFileName(model.model);
             assetsInUse.Add(fname);
         }
 
@@ -139,7 +180,7 @@ public class ModelAssets
     {
         try
         {
-            var destFile = GetAssetFileName(assetsDirectory, assetId);
+            var destFile = GetAssetFileName(assetId);
             var partFile = destFile + ".part";
 
             Log.Msg("downloading asset {0} to {1}", assetId, destFile);

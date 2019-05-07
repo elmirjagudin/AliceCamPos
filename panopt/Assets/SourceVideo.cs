@@ -26,6 +26,8 @@ public class SourceVideo
     public delegate void ImportFinished();
     public static event ImportFinished ImportFinishedEvent;
 
+    public static string VideoFile { get; private set; }
+
     /* hard-coded for now, TODO: package on in StreamingAssets and use that? */
     const string FFMPEG_BIN = "/usr/bin/ffmpeg";
     const string MESHROOM_COMPUTE_BIN = "/home/boris/Meshroom-2019.1.0/meshroom_compute";
@@ -90,6 +92,8 @@ public class SourceVideo
 
     public static void Open(string videoFile)
     {
+        VideoFile = videoFile;
+
         if (IsImported(videoFile))
         {
             VideoOpenedEvent?.Invoke(videoFile);
