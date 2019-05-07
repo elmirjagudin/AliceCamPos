@@ -216,9 +216,9 @@ public class GNSSTransform : MonoBehaviour
 
     public void InitModels()
     {
-        foreach (var i in Models.Prefabs)
+        foreach (var model in Models.SceneModels)
         {
-            AddObject(i.pos, Instantiate(i.prefab));
+            AddObject(model.Position, model.SceneObject);
         }
     }
 

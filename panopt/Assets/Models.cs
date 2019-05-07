@@ -3,6 +3,39 @@ using System.Collections.Generic;
 using UnityEngine;
 using Hagring;
 
+public class SceneModel
+{
+    public string Name { get; private set; }
+    public GameObject Prefab { get; private set; }
+    public GPSPosition Position { get; private set; }
+
+    GameObject _SceneObject = null;
+    public GameObject SceneObject
+    {
+        /*
+         * instantiate Prefab lazily
+         */
+        get
+        {
+            if (_SceneObject == null)
+            {
+                _SceneObject = GameObject.Instantiate(Prefab);
+            }
+
+            return _SceneObject;
+        }
+    }
+
+    public bool Hidden { set { SceneObject.SetActive(!value);} }
+
+    public SceneModel(string Name, GameObject Prefab, GPSPosition Position)
+    {
+        this.Name = Name;
+        this.Prefab = Prefab;
+        this.Position = Position;
+    }
+}
+
 public class Models : MonoBehaviour
 {
     public delegate void StartedLoadingPrefabs();
@@ -14,15 +47,14 @@ public class Models : MonoBehaviour
     public delegate void FinishedLoadingPrefabs();
     public event FinishedLoadingPrefabs FinishedLoadingPrefabsEvent;
 
-    CloudAPI.Model[] allModels;
+    CloudAPI.Model[] CloudModels;
 
-    public List<(GPSPosition pos, GameObject prefab)>
-        Prefabs { get; private set;} =
-            new List<(GPSPosition pos, GameObject prefab)>();
+    public List<SceneModel> SceneModels { get; private set;} =
+        new List<SceneModel>();
 
     public void Init(CloudAPI.Model[] models)
     {
-        this.allModels = models;
+        this.CloudModels = models;
         ModelAssets.Download(models);
     }
 
@@ -35,10 +67,10 @@ public class Models : MonoBehaviour
     {
         StartedLoadingPrefabsEvent?.Invoke();
 
-        int total = allModels.Length;
+        int total = CloudModels.Length;
         int cntr = 0;
 
-        foreach (var m in allModels)
+        foreach (var m in CloudModels)
         {
             cntr += 1;
             var model = CloudAPI.Instance.GetModel(m.model);
@@ -51,7 +83,8 @@ public class Models : MonoBehaviour
             var pos = model.defaultPosition.GpsPos;
             var prefab = ModelAssets.LoadAsset(m.model);
             MainThreadRunner.Run(() => prefab.name = m.ToString());
-            Prefabs.Add((pos, prefab));
+
+            SceneModels.Add(new SceneModel(m.name, prefab, pos));
 
             PrefabLoadedEvent?.Invoke(cntr, total);
         }

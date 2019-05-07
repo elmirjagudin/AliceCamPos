@@ -3,20 +3,23 @@ using UnityEngine.UI;
 
 public class ModelsMenu : Menu
 {
+    public Models Models;
     public RectTransform Content;
     public ModelEntry ModelEntry;
 
     void Start()
     {
-        /*
-         * temporary code, just for testing UI elements
-         */
-        var models = CloudAPI.Instance.GetModels();
-        foreach (var m in models)
+        foreach (var model in Models.SceneModels)
         {
             var entry = Instantiate(ModelEntry);
-            entry.SetName(m.name);
+            entry.SetName(model.Name);
             entry.transform.SetParent(Content);
+
+            var toggle = entry.GetComponentInChildren<Toggle>();
+            toggle.onValueChanged.AddListener(delegate (bool on)
+            {
+                model.Hidden = !on;
+            });
         }
     }
 }

@@ -1029,6 +1029,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d1a261e8eefc5c8cd9cd7d113f065606, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  Models: {fileID: 447930664}
   Content: {fileID: 681378160}
   ModelEntry: {fileID: 4534544825368428904, guid: c7d58857bf8f83ec2a81793f2b6896fe,
     type: 3}
