@@ -4,6 +4,7 @@ using UnityEngine.UI;
 public class ModelsMenu : Menu
 {
     public Models Models;
+    public ModelMenu ModelMenu;
     public RectTransform Content;
     public ModelEntry ModelEntry;
 
@@ -20,6 +21,20 @@ public class ModelsMenu : Menu
             {
                 model.Hidden = !on;
             });
+
+            var label = entry.GetComponentInChildren<Clickable>();
+            label.Clicked += delegate()
+            {
+                if (ModelMenu.Visible())
+                {
+                    /*
+                     * model menu already displayed,
+                     * do nothing
+                     */
+                    return;
+                }
+                ModelMenu.Show(model);
+            };
         }
     }
 }

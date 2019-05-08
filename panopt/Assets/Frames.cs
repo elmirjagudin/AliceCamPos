@@ -42,7 +42,7 @@ public class Frames : MonoBehaviour
     public void OpenVideo()
     {
         cams.Init(SourceVideo.VideoFile, out FirstFrame, out LastFrame);
-        cams.AddTestModels();
+//        cams.AddTestModels();
 
         VideoLoadedEvent?.Invoke(FirstFrame, LastFrame);
 

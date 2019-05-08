@@ -213,9 +213,9 @@ public class Cams : MonoBehaviour
         GNSSTransform.ToggleGNSSMarkers();
     }
 
-    //debug wrapper
-    public void AddTestModels()
-    {
-        GNSSTransform.AddTestModels();
-    }
+    // //debug wrapper
+    // public void AddTestModels()
+    // {
+    //     GNSSTransform.AddTestModels();
+    // }
 }

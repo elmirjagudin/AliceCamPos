@@ -177,6 +177,8 @@ public class GNSSTransform : MonoBehaviour
     public GameObject SFMPrefab;
     public GameObject RedBall;
 
+    GPSPosition CurrentGNSSOrigin;
+
     List<(GPSPosition pos, GameObject obj)> ActiveModels =
         new List<(GPSPosition pos, GameObject obj)>();
 
@@ -213,15 +215,18 @@ public class GNSSTransform : MonoBehaviour
         return (rotation, (float)scale, CamsOrigin, GNSSOrigin);
     }
 
-
     public void InitModels()
     {
         foreach (var model in Models.SceneModels)
         {
             AddObject(model.Position, model.SceneObject);
+            model.PositionUpdatedEvent += delegate (GPSPosition pos)
+            {
+                model.SceneObject.transform.localPosition =
+                    CurrentGNSSOrigin.GetVector(pos);
+            };
         }
     }
-
 
     public void ToggleGNSSMarkers()
     {
@@ -244,6 +249,7 @@ public class GNSSTransform : MonoBehaviour
 
     public void SetTransform(Vector3 position, Quaternion rotation, float scale, GPSPosition GNSSOrigin)
     {
+        CurrentGNSSOrigin = GNSSOrigin;
         gameObject.transform.position = position;
         gameObject.transform.rotation = rotation;
         gameObject.transform.localScale = Vector3.one * scale;
@@ -318,67 +324,67 @@ public class GNSSTransform : MonoBehaviour
         ActiveModels.Add((pos, obj));
     }
 
-    public void AddTestModels()
-    {
-        // foreach (var p in Positions)
-        // {
-        //     var c = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-        //     c.transform.position = transformer.ToSfm(p);
-        //     c.transform.localScale = Vector3.one * 0.05f;
-        //     c.name = p.ToString();
-        // }
+    // public void AddTestModels()
+    // {
+    //     // foreach (var p in Positions)
+    //     // {
+    //     //     var c = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+    //     //     c.transform.position = transformer.ToSfm(p);
+    //     //     c.transform.localScale = Vector3.one * 0.05f;
+    //     //     c.name = p.ToString();
+    //     // }
 
-        AddPosition("S", 13.21285566, 55.71090721, 102.3);
-        AddPosition("O", 13.21270959, 55.71090706, 102.3);
-        AddPosition("P", 13.21271005, 55.71095111, 102.3);
-        AddPosition("R", 13.21278098, 55.71095192, 102.3);
-        AddPosition("Q", 13.21285350, 55.71095194, 102.3);
+    //     AddPosition("S", 13.21285566, 55.71090721, 102.3);
+    //     AddPosition("O", 13.21270959, 55.71090706, 102.3);
+    //     AddPosition("P", 13.21271005, 55.71095111, 102.3);
+    //     AddPosition("R", 13.21278098, 55.71095192, 102.3);
+    //     AddPosition("Q", 13.21285350, 55.71095194, 102.3);
 
-        AddPosition("Pnt1",  13.21404847, 55.71092960, 103.2 + .4);
-        AddPositionRB("APnt1",
-                 new GPSPosition("sweref_99_13_30", 6176415.2 + .25, 132025.7 - .26, 103.6));
+    //     AddPosition("Pnt1",  13.21404847, 55.71092960, 103.2 + .4);
+    //     AddPositionRB("APnt1",
+    //              new GPSPosition("sweref_99_13_30", 6176415.2 + .25, 132025.7 - .26, 103.6));
 
-        AddPosition("Pnt3",  13.21392685, 55.71085484, 103.2 + .4);
-        AddPositionRB("APnt3",
-                new GPSPosition("sweref_99_13_30", 6176406.9 + .25, 132018.1 - .26, 103.6));
+    //     AddPosition("Pnt3",  13.21392685, 55.71085484, 103.2 + .4);
+    //     AddPositionRB("APnt3",
+    //             new GPSPosition("sweref_99_13_30", 6176406.9 + .25, 132018.1 - .26, 103.6));
 
-        AddPosition("Pnt5",  13.21380042, 55.71085481, 103.2 + .4);
-        AddPositionRB("APnt5",
-                new GPSPosition("sweref_99_13_30", 6176406.9 + .24, 132010.1 - .18, 103.6));
+    //     AddPosition("Pnt5",  13.21380042, 55.71085481, 103.2 + .4);
+    //     AddPositionRB("APnt5",
+    //             new GPSPosition("sweref_99_13_30", 6176406.9 + .24, 132010.1 - .18, 103.6));
 
-        AddPosition("Pnt8",  13.21372798, 55.71085486, 103.1 + .4);
-        AddPositionRB("APnt8",
-                new GPSPosition("sweref_99_13_30", 6176407 + .24, 132005.6 - .18, 103.5));
+    //     AddPosition("Pnt8",  13.21372798, 55.71085486, 103.1 + .4);
+    //     AddPositionRB("APnt8",
+    //             new GPSPosition("sweref_99_13_30", 6176407 + .24, 132005.6 - .18, 103.5));
 
-        AddPosition("Pnt11", 13.21386312, 55.71097488, 103.1 + .4);
-        AddPositionRB("APnt11",
-                new GPSPosition("sweref_99_13_30", 6176420.3 + .21, 132014.1 - .17, 103.5));
+    //     AddPosition("Pnt11", 13.21386312, 55.71097488, 103.1 + .4);
+    //     AddPositionRB("APnt11",
+    //             new GPSPosition("sweref_99_13_30", 6176420.3 + .21, 132014.1 - .17, 103.5));
 
-        AddPosition("Pnt13", 13.21367242, 55.71092992, 102.9 + .4);
-        AddPositionRB("APnt13",
-                new GPSPosition("sweref_99_13_30", 6176415.3 + .21, 132002.1- .17, 103.3));
+    //     AddPosition("Pnt13", 13.21367242, 55.71092992, 102.9 + .4);
+    //     AddPositionRB("APnt13",
+    //             new GPSPosition("sweref_99_13_30", 6176415.3 + .21, 132002.1- .17, 103.3));
 
-        AddPosition("Pnt14", 13.21351337, 55.71099739, 103.0 + .4);
-        AddPosition("Pnt16", 13.21324542, 55.71090776, 102.7 + .4);
-        AddPosition("Pnt18", 13.21324485, 55.71093010, 102.7 + .4);
-        AddPosition("Pnt20", 13.21313172, 55.71090771, 102.5 + .4);
-        AddPosition("Pnt22", 13.21305239, 55.71090753, 102.5 + .4);
-        AddPosition("Pnt24", 13.21297380, 55.71090752, 102.5 + .4);
-        AddPosition("Pnt26", 13.21312557, 55.71075311, 102.5 + .4);
-        AddPosition("Pnt28", 13.21316558, 55.71075306, 102.5 + .4);
-        AddPosition("Pnt30", 13.21320524, 55.71075316, 102.6 + .4);
+    //     AddPosition("Pnt14", 13.21351337, 55.71099739, 103.0 + .4);
+    //     AddPosition("Pnt16", 13.21324542, 55.71090776, 102.7 + .4);
+    //     AddPosition("Pnt18", 13.21324485, 55.71093010, 102.7 + .4);
+    //     AddPosition("Pnt20", 13.21313172, 55.71090771, 102.5 + .4);
+    //     AddPosition("Pnt22", 13.21305239, 55.71090753, 102.5 + .4);
+    //     AddPosition("Pnt24", 13.21297380, 55.71090752, 102.5 + .4);
+    //     AddPosition("Pnt26", 13.21312557, 55.71075311, 102.5 + .4);
+    //     AddPosition("Pnt28", 13.21316558, 55.71075306, 102.5 + .4);
+    //     AddPosition("Pnt30", 13.21320524, 55.71075316, 102.6 + .4);
 
 
-        // for (int i = 1; i < 11; i += 1)
-        // {
-        //     AddPosition("P" + i,
-        //         new GPSPosition("sweref_99_13_30", 6176417.94631892+i*2.5, 131941.659494839, 102.3));
-        //     AddPosition("R" + i,
-        //         new GPSPosition("sweref_99_13_30", 6176418.01803302+i*2.5, 131946.118340288, 102.3));
-        //     AddPosition("Q" + i,
-        //         new GPSPosition("sweref_99_13_30", 6176418.00138237+i*2.5, 131950.676764551, 102.3));
-        // }
-    }
+    //     // for (int i = 1; i < 11; i += 1)
+    //     // {
+    //     //     AddPosition("P" + i,
+    //     //         new GPSPosition("sweref_99_13_30", 6176417.94631892+i*2.5, 131941.659494839, 102.3));
+    //     //     AddPosition("R" + i,
+    //     //         new GPSPosition("sweref_99_13_30", 6176418.01803302+i*2.5, 131946.118340288, 102.3));
+    //     //     AddPosition("Q" + i,
+    //     //         new GPSPosition("sweref_99_13_30", 6176418.00138237+i*2.5, 131950.676764551, 102.3));
+    //     // }
+    // }
 
     void GetOrigins(uint[] FrameNums,
                     Dictionary<uint, GameObject> CamsPositions,

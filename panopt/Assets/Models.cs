@@ -5,6 +5,9 @@ using Hagring;
 
 public class SceneModel
 {
+    public delegate void PositionUpdated(GPSPosition NewPosition);
+    public event PositionUpdated PositionUpdatedEvent;
+
     public string Name { get; private set; }
     public GameObject Prefab { get; private set; }
     public GPSPosition Position { get; private set; }
@@ -33,6 +36,13 @@ public class SceneModel
         this.Name = Name;
         this.Prefab = Prefab;
         this.Position = Position;
+    }
+
+    public void UpdatePosition(string Projection,
+                               double North, double East, double Altitude)
+    {
+        Position = new GPSPosition(Projection, North, East, Altitude);
+        PositionUpdatedEvent?.Invoke(Position);
     }
 }
 
