@@ -52,10 +52,10 @@ public class UIDispatcher : MonoBehaviour
         VideoLabel.text = Path.GetFileName(videoFile);
     }
 
-    void HandleVideoOpened(string videoFile)
+    void HandleVideoOpened(string VideoFile)
     {
-        SetCurrentVideo(videoFile);
-        Models.Load();
+        SetCurrentVideo(VideoFile);
+        Models.Load(VideoFile);
     }
 
     void HandlePrefabLoaded(int done, int total)

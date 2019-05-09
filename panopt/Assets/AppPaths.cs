@@ -4,6 +4,8 @@ using Hagring;
 
 public class AppPaths : MonoBehaviour
 {
+    const string DATA_DIR = "panopt";
+
      // TODO: use proper version
     public const string MODEL_ASSET_VERSION = "2017.4.4f1";
 
@@ -36,5 +38,13 @@ public class AppPaths : MonoBehaviour
          * System.IO.DirectoryInfo.GetFiles()
          */
         return Application.persistentDataPath.Replace('/', '\\');
+    }
+
+    public static string GetVideoDataDir(string VideoFile)
+    {
+        var dirName = Path.GetDirectoryName(VideoFile);
+        var fileName = Path.GetFileNameWithoutExtension(VideoFile);
+
+        return Path.Combine(dirName, DATA_DIR, fileName);
     }
 }

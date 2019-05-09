@@ -89,20 +89,16 @@ class FFMPEGOutputParser
 
 public class PrepVideo
 {
-    const string DATA_DIR = "panopt";
     const string POSITIONS_FILE = "positions.srt";
 
     public static string GetImagesDir(string VideoFile)
     {
-        var dirName = Path.GetDirectoryName(VideoFile);
-        var fileName = Path.GetFileNameWithoutExtension(VideoFile);
-
-        return Path.Combine(dirName, DATA_DIR, fileName);
+        return AppPaths.GetVideoDataDir(VideoFile);
     }
 
     public static string GetPositionsFilePath(string VideoFile)
     {
-        return Path.Combine(GetImagesDir(VideoFile), POSITIONS_FILE);
+        return Path.Combine(AppPaths.GetVideoDataDir(VideoFile), POSITIONS_FILE);
     }
 
     public static void ExtractSubtitles(string ffmpegBinary, string VideoFile,
